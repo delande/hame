@@ -1,10 +1,19 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""
+This module computes one-photon and two-photon matrix elements between hydrogenic states.
+
+It includes diagonal elements of the two-photon matrix elements, that is light-shift and one-photon ionization rate.
+
+It performs the numerical calculation in the length gauge in a Sturmian basis.
+It additionally performs the calculation in the velocity gauge.
+
+It checks that results in length and velocity gauges are equal.
+"""
+
 __author__ = "Dominique Delande"
 __copyright__ = "Copyright (C) 2023 Dominique Delande"
 __license__ = "GPL version 2 or later"
 __version__ = "1.0"
-#
+
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -23,20 +32,6 @@ __version__ = "1.0"
 # Author: Dominique Delande
 # Release date: February, 24, 2023
 
-"""
-Created on Tue Feb 21 17:29:59 2023
-
-@author: delande
-
-This program computes one-photon and two-photon matrix elements between hydrogenic states.
-It includes diagonal elements of the two-photon matrix elements, that is light-shift and one-photon ionization rate.
-
-It performs the numerical calculation in the length gauge in a Sturmian basis.
-It additionally performs the calculation in the velocity gauge.
-
-It checks that results in length and velocity gauges are equal.
-"""
-
 import numpy as np
 import math
 import cmath
@@ -44,15 +39,15 @@ import scipy.special
 import sys
 
 def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool=False) -> np.ndarray:
-  r"""
-  Compute the dilatation matrix for a D_k^+ irreducible representation of the SO(2,1) group.
+  """
+  Compute the dilatation matrix for a :math:`D_k^+` irreducible representation of the SO(2,1) group.
 
-  The dilatation operator is defined as \exp(-i\gamma S_2) where S_2 is the second generator of the SO(2,1) group
+  The dilatation operator is defined as :math:`\exp(-i\gamma S_2)` where S_2 is the second generator of the SO(2,1) group
   and \gamma the parameter of the dilatation.
   Here, we compute the matrix of this operator in the eigenbasis of the S_3 generator of the SO(2,1), for a D_k^+ irreproducible representation
-  The eigenbasis of S_3 is such that S_3|n> = (n+k)|n>, see eq. (I-168) of [1], where n is a non-negative integer.
+  The eigenbasis of S_3 is such that S_3|n> = (n+k)|n>, see eq. (I-168) of [1]_, where n is a non-negative integer.
   k is the parameter of the D_k^+ representation and is a positive half-integer or integer.
-  The matrix elements are given in Eq. (I-210) of [1]. They involve hypergeometric functions.
+  The matrix elements are given in Eq. (I-210) of [1]_. They involve hypergeometric functions.
   However, for small non-zero \gamma, this equation generates underflows and overflows and is thus inconvenient.
   A better strategy, used in this routine, is to use recurrence relations between matrix elements to generate all of them
   from the ones at small n,n'. One must be careful to use stable recurrence relations.
@@ -66,7 +61,7 @@ def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool
   gamma : complex
     The parameter of the dilatation matrix. It can be either a float or a complex. For a standard dilatation, \gamma is real
     and the dilatation matrix is purely real. The complex \gamma case is used when a complex dilatation takes place. This is used
-    when complex rotation of the coordinates is used. This is not documented in [1].
+    when complex rotation of the coordinates is used. This is not documented in [1]_.
   nsup : int
     The maximum n involved in the calculation.
   debug : bool, optional
@@ -78,13 +73,11 @@ def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool
 
   Returns
   -------
-  A numpy array [0:nsup,0:nsup] containing <n k|\exp(-i\gamma S_2)|n' k> for 0<=n,n'<=nsup.
-
+  A numpy array :math:`[0\!:\!nsup\!+\!1,0\!:\!nsup\!+\!1]` containing :math:`<\!n k|\exp(-i\gamma S_2)|n' k\!>` for 0<=n,n'<=nsup.
 
   References
   ----------
-  [1] D. Delande, These d'Etat: Atomes de Rydberg en champs statiques intenses, Universite Pierre et Marie Curie (Paris),
-  1988, https://theses.hal.science/tel-00011864v1
+  .. [1] D. Delande, These d'Etat: Atomes de Rydberg en champs statiques intenses, Universite Pierre et Marie Curie (Paris), 1988, https://theses.hal.science/tel-00011864v1
 
   """
   assert isinstance(two_k,int), 'Inside compute_dilatation_operator: two_k should be an integer and is '+str(two_k)
@@ -134,7 +127,7 @@ def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool
   return x
 
 def gordon_formula(n: int, l: int, nprime: int, lprime: int) -> float:
-  r"""
+  """
   Compute the matrix element of the dipole operator between eigenstates of the hydrogen atom.
 
   This is <n l m=0 | z | nprime, lprime, m=0>.
@@ -214,8 +207,8 @@ def compute_2r_matrix(l: int, nsup: int, alp: complex) -> np.ndarray:
 
   Returns
   -------
-  Numpy array [0:nsup-l,0:nsup-l] of complex or float.
-  It should be a tridiagonal matrix.
+  Numpy array : complex or float
+    It should be a tridiagonal matrix :math:`[0\!:\!nsup\!-\!l,0\!:\!nsup\!-\!l]`.
 
   References
   ----------
@@ -240,11 +233,11 @@ def compute_2r_matrix(l: int, nsup: int, alp: complex) -> np.ndarray:
   return x*alp
 
 def compute_z_matrix(l: int, lprime: int, nsup: int, alp: complex) -> np.ndarray:
-  r"""
+  """
   Compute the matrix representing the z operator in a Sturmian basis of parameter alp.
 
   This is the submatrix connecting the l subspace on the right side and the lprime subspace on the left side.
-  It is non-zero only if |l-lprime| = 1.
+  It is non-zero only if :math:`|l-lprime| = 1`.
   The dimension of the rectangular matrix is [0:nsup-l,0:nsup-lprime].
   This rectangular sub-matrix matrix is tridiagonal.
   The z operator in the Sturmian basis is, according to Eq. (I-211) of [1], z = alp*(S_3+S_1-T_3-T_1)
@@ -263,7 +256,7 @@ def compute_z_matrix(l: int, lprime: int, nsup: int, alp: complex) -> np.ndarray
 
   Returns
   -------
-  Numpy array [0:nsup-l,0:nsup-lprime] of complex or float.
+  Numpy array :math:`[0\!:\!nsup-l,0\!:\!nsup-lprime]` of complex or float.
   It should be a tridiagonal matrix.
 
   References
@@ -300,16 +293,16 @@ def compute_z_matrix(l: int, lprime: int, nsup: int, alp: complex) -> np.ndarray
   return x*alp
 
 def compute_2irpz_matrix(l: int, lprime: int, nsup: int, alp: float) -> np.ndarray:
-  r"""
+  """
   Compute the matrix representing the 2*i*r*pz operator in a Sturmian basis of parameter alp.
 
   This is the submatrix connecting the l subspace on the right side and the lprime subspace on the left side.
-  It is non-zero only if |l-lprime| = 1.
-  The dimension of the rectangular matrix is [0:nsup-l,0:nsup-lprime].
+  It is non-zero only if :math:`|l-lprime| = 1`.
+  The dimension of the rectangular matrix is :math:`[0:nsup-l,0:nsup-lprime]`.
   This rectangular sub-matrix matrix is tridiagonal.
-  The r*pz operator in the Sturmian basis is, according to Eq. (I-211) of [1], r*pz = T_2-S_2
+  The r*pz operator in the Sturmian basis is, according to Eq. (I-211) of [1],:math:`r*pz = T_2-S_2`
   Its matrix elements are given by Eq. (I-197) of [1].
-  They are purely imaginary, this is why they are multiplied by 2*i to obtain a real result: 2*i*r*pz = T_+-S_++S_--T_-
+  They are purely imaginary, this is why they are multiplied by 2*i to obtain a real result: :math:`2*i*r*pz = T_+-S_++S_--T_-`
 
 
   Parameters
@@ -457,7 +450,7 @@ def compute_dipole_matrix_element(n: int, l:int, nprime:int, lprime:int, nsup: i
   """
   Compute the dipole matrix element between eigenstates of the hydrogen atom.
 
-  Should be zero if |l-lprime| is not 1, non-zero otherwise
+  Should be zero if :math:`|l-lprime|` is not 1, non-zero otherwise
   The calculation is performed in the Sturmian basis of the n,l state, i.e. with scaling parameter alp=n.
   The state nprime,lprime is simple in the alp=nprime Sturmian basis. It is computed in the alp=n Sturmian basis using the
   matrix generated by the routine compute_dilatation_matrix.
@@ -514,7 +507,7 @@ def compute_dipole_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lpri
   Compute the dipole matrix element between eigenstates of the hydrogen atom in the velocity gauge.
 
   These are the matrix elements of i*p_z (the i makes the result real)
-  Should be zero if |l-lprime| is not 1, non-zero otherwise
+  Should be zero if :math:`|l-lprime|` is not 1, non-zero otherwise
   The calculation is performed in the Sturmian basis of the n,l state, i.e. with scaling parameter alp=n.
   The state nprime,lprime is simple in the alp=nprime Sturmian basis. It is computed in the alp=n Sturmian basis using the
   matrix generated by the routine compute_dilatation_matrix.
@@ -567,8 +560,8 @@ def compute_partial_two_photon_matrix_element(n: int, l:int, nprime:int, lprime:
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom, with intermediate state of well defined angular momentum.
 
-  Should be zero if |l-lintermediate| and |lprime-lintermediate| are not 1, non-zero otherwise.
-  As a consequence, there is the selection rule |l-lprime| = 0 or 2.
+  Should be zero if :math:`|l-lintermediate|` and :math:`|lprime-lintermediate|` are not 1, non-zero otherwise.
+  As a consequence, there is the selection rule :math:`|l-lprime|` = 0 or 2.
   The calculation is performed in a Sturmian basis of scaling parameter alp.
   The state nprime,lprime is simple in the alp=nprime Sturmian basis.
   One then applies successively:
@@ -644,8 +637,8 @@ def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, npri
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom, with intermediate state of well defined angular momentum, in the veolcity gauge.
 
-  Should be zero if |l-lintermediate| and |lprime-lintermediate| are not 1, non-zero otherwise.
-  As a consequence, there is the selection rule |l-lprime| = 0 or 2.
+  Should be zero if :math:`|l-lintermediate|` and :math:`|lprime-lintermediate|` are not 1, non-zero otherwise.
+  As a consequence, there is the selection rule :math:`|l-lprime|` = 0 or 2.
   The calculation is performed in a Sturmian basis of scaling parameter alp.
   The state nprime,lprime is simple in the alp=nprime Sturmian basis.
   One then applies successively:
@@ -654,6 +647,7 @@ def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, npri
     * The 1/(2r(Eintermediate)-H) operator (Green function in Sturmian basis)
     * Another dilatation operator to go from scaling parameter alp to n
     * The 2*i*r*pz operator in the alp=n basis
+    
 
   Parameters
   ----------
@@ -715,7 +709,7 @@ def compute_full_two_photon_matrix_element(n: int, l: int, nprime: int, lprime: 
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom.
 
-  Should be zero if |l-lprime| is not 0 or 2.
+  Should be zero if :math:`|l-lprime|` is not 0 or 2.
   This routine uses compute_partial_two_photon_matrix_element or compute_partial_two_photon_matrix_element_velocity_gauge for each possible intermediate l value.
   It also automatically adjust the alp parameter of the Sturmian basis as well as its size.
 
@@ -774,7 +768,7 @@ def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float,
   Compute the two photon matrix element between eigenstates of the hydrogen atom corresponding to the light-shift.
 
   This computes the partial contribution of states with angular momentum lintermediate
-  Should be zero if |l-lintermediate| is not 1, non-zero otherwise.
+  Should be zero if :math:`|l-lintermediate|` is not 1, non-zero otherwise.
   The calculation is performed in a Sturmian basis of scaling parameter alp.
   The state n,l is simple in the alp=n Sturmian basis.
   One then applies successively:
@@ -785,6 +779,7 @@ def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float,
     * Another dilatation operator to go back from scaling parameter alp to n
     * The 2r operator (to compensate for the Green function)
     * The z operator in the alp=n basis
+    
   If one keeps in memory the state after application of z and 2r, the last two steps boil down to a scalar product
 
   Parameters
@@ -851,7 +846,7 @@ def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int
   Compute the two photon matrix element between eigenstates of the hydrogen atom corresponding to the light-shift, in the velocity gauge.
 
   This computes the partial contribution of states with angular momentum lintermediate
-  Should be zero if |l-lintermediate| is not 1, non-zero otherwise.
+  Should be zero if :math:`|l-lintermediate|` is not 1, non-zero otherwise.
   The calculation is performed in a Sturmian basis of scaling parameter alp.
   The state n,l is simple in the alp=n Sturmian basis.
   One then applies successively:
@@ -860,6 +855,7 @@ def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int
     * The 1/(2r(Eintermediate-H)) operator (Green function in Sturmian basis)
     * Another dilatation operator to go back from scaling parameter alp to n
     * The 2*i*r*pz operator in the alp=n basis
+    
   If one keeps in memory the state after application of 2*i*r*pz, the last step boils down to a scalar product
 
   Parameters
@@ -969,4 +965,3 @@ def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length') 
   if gauge=='velocity':
     x = (x+1.0)/omega**2
   return x
-
