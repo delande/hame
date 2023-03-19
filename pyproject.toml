@@ -9,4 +9,5 @@ dynamic = ["version", "description"]
 dependencies = [
   "numpy",
   "scipy",
+  "mpmath",
 ]  
