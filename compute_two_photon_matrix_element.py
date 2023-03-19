@@ -56,22 +56,23 @@ def main():
 
   """
 
+  """
   n = 1
   l = 0
   nprime = 2
   lprime = 1
-  nsup = 20
   print('Example of one-photon transition')
   print('<',n,l,'| z |',nprime,lprime,'> from Gordon formula    :',hame.gordon_formula(n, l, nprime, lprime))
 #  print(check_orthogonality(n, l, nprime, lprime, nsup))
-  print('<',n,l,'| z |',nprime,lprime,'> from numerics          :',hame.compute_dipole_matrix_element(n, l, nprime, lprime, nsup))
-  result_pz = hame.compute_dipole_matrix_element_velocity_gauge(n, l, nprime, lprime, nsup)
+  print('<',n,l,'| z |',nprime,lprime,'> from numerics          :',hame.compute_dipole_matrix_element(n, l, nprime, lprime))
+  result_pz = hame.compute_dipole_matrix_element_velocity_gauge(n, l, nprime, lprime)
   print('<',n,l,'| i*pz |',nprime,lprime,'> from numerics       :',result_pz)
   if n!=nprime:
     print('<',n,l,'| i*pz/omega |',nprime,lprime,'> from numerics :',result_pz/(0.5/n**2-0.5/nprime**2))
   print()
+  """
 
-
+  """
   n = 1
   l = 0
   nprime = 4
@@ -117,7 +118,14 @@ def main():
   x = hame.compute_full_light_shift(nprime, lprime, omega, gauge='velocity')
   print('Light-shift     of the n =',nprime,'l =',lprime,'state at |omega| =',abs(omega),':',x.real,' (velocity gauge)')
   print('Ionization rate of the n =',nprime,'l =',lprime,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
+  """
 
+  omega = 0.2
+#  print(hame.ionization_rate_1s(omega))
+  x = hame.compute_full_light_shift(3, 1, omega, gauge='length', debug=True)
+  print(2.0*x.imag)
+  y = hame.ionization_rate(3, 1, 0, omega, debug=True)
+  print(0.5*y)
 if __name__ == "__main__":
   main()
 
