@@ -3,7 +3,7 @@
 __author__ = "Dominique Delande"
 __copyright__ = "Copyright (C) 2023 Dominique Delande"
 __license__ = "GPL version 2 or later"
-__version__ = "1.0"
+__version__ = "1.1"
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,14 +53,12 @@ def main():
   Returns
   -------
   None.
-
   """
-
   """
-  n = 1
-  l = 0
+  n = 2
+  l = 1
   nprime = 2
-  lprime = 1
+  lprime = 0
   print('Example of one-photon transition')
   print('<',n,l,'| z |',nprime,lprime,'> from Gordon formula    :',hame.gordon_formula(n, l, nprime, lprime))
 #  print(check_orthogonality(n, l, nprime, lprime, nsup))
@@ -69,6 +67,48 @@ def main():
   print('<',n,l,'| i*pz |',nprime,lprime,'> from numerics       :',result_pz)
   if n!=nprime:
     print('<',n,l,'| i*pz/omega |',nprime,lprime,'> from numerics :',result_pz/(0.5/n**2-0.5/nprime**2))
+  print()
+
+  gamma = np.log(n/nprime)
+  nsup = 200
+  matrix = hame.compute_dilatation_matrix(2*l, gamma, nsup)
+  my_result = -n*nprime*np.sqrt((l**2)/(4*l**2-1))/(n**2-nprime**2)
+  my_result *= (np.sqrt((n-l)*(n-l+1))*matrix[n-l+1,nprime-lprime-1]-np.sqrt((n+l)*(n+l-1))*matrix[n-l-1,nprime-lprime-1])
+  print('my result = ', my_result)
+  print()
+  """
+  """
+  n = 5
+  l = 1
+  nprime = 5
+  lprime = 0
+# Diagonalize U_1 in the eigenbasis of U_3
+  nsup = 20
+  my_matrix = np.zeros((nsup,nsup))
+  for i in range(nsup-1):
+    my_matrix[i+1,i] = 0.5*math.sqrt((i+1)*(i+2*l+2))
+    my_matrix[i,i+1] = my_matrix[i+1,i]
+  w, v = np.linalg.eigh(my_matrix)
+#  print(w)
+# select the eigenvalue closest to -n
+  my_eigenvalue = np.argmin(abs(w+n))
+  print(my_eigenvalue,w[my_eigenvalue])
+  print(v[:,my_eigenvalue])
+  gamma = math.log(w[-my_eigenvalue]/nprime)+0.5j*np.pi
+  gamma = math.log(n/nprime)+0.5j*np.pi
+  matrix = hame.compute_dilatation_matrix(2*l+2, gamma, nsup)
+  print(matrix[:,nprime-l-1])
+  """
+
+  """
+  gamma = math.log(n/nprime)-0.5j*np.pi
+  print(type(gamma))
+  nsup = 200
+  matrix = hame.compute_dilatation_matrix(2*l, gamma, nsup)
+  my_result = -n*nprime*np.sqrt((l**2)/(4*l**2-1))/(n**2+nprime**2)
+  my_result *= (np.sqrt((n-l)*(n-l+1))*matrix[n-l+1,nprime-lprime-1]-np.sqrt((n+l)*(n+l-1))*matrix[n-l-1,nprime-lprime-1])
+  my_result = 2.0*np.pi*my_result**2
+  print('my result = ', my_result)
   print()
   """
 
@@ -121,11 +161,17 @@ def main():
   """
 
   omega = 0.2
+  n = 2
+  l = 0
 #  print(hame.ionization_rate_1s(omega))
-  x = hame.compute_full_light_shift(3, 1, omega, gauge='length', debug=True)
-  print(2.0*x.imag)
-  y = hame.ionization_rate(3, 1, 0, omega, debug=True)
-  print(0.5*y)
+  x = hame.compute_full_light_shift(n, l, omega, gauge='length', debug=False)
+  print('Light-shift     of the n =',n,'l =',l,'state at |omega| =',abs(omega),':',x.real,' (length gauge)')
+  print('Ionization rate of the n =',n,'l =',l,'state at |omega| =',abs(omega),':',x.imag*2.0,' (length gauge)')
+  y = hame.ionization_rate(n, l, l+1, omega, debug=False)
+  if (l>0):
+    y += hame.ionization_rate(n, l, l-1, omega, debug=False)
+  print('Ionization rate computed using the Fermi golden rule :',y,' (analytic result)')
+
 if __name__ == "__main__":
   main()
 

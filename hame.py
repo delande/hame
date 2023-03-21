@@ -12,7 +12,7 @@ It checks that results in length and velocity gauges are equal.
 __author__ = "Dominique Delande"
 __copyright__ = "Copyright (C) 2023 Dominique Delande"
 __license__ = "GPL version 2 or later"
-__version__ = "1.0"
+__version__ = "1.1"
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -196,7 +196,9 @@ def ionization_rate_1s(omega: float) -> float:
   Compute the ionization rate of the 1s state.
 
   It uses the Gordon formula discrete->continuum, Eq. (28') in ref. [1]_. Note however that there are two typos in the equation:
+
   1. The factor i in the first numerator should not be in the exponent. but a simple multiplication factor
+
   2. In the first denominator, the power of x should be 2, not 3/2.
 
   When specialized to the 1s initial state, the formula simplifies to Eq. (71.4) in ref. [2]_.
@@ -231,7 +233,9 @@ def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=
   Compute the ionization rate of the (nprime,lprime) state to the l continuum.
 
   It uses the Gordon formula discrete->continuum, Eq. (28') in ref. [1]_. Note however that there are two typos in the equation:
-  1. The factor i in the first numerator should not be in the exponent. but a simple multiplication factor
+
+  1. The factor i in the first numerator should not be in the exponent, but a simple multiplication factor
+
   2. In the first denominator, the power of x should be 2, not 3/2
 
   Parameters
@@ -244,7 +248,7 @@ def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=
     angular momentum of the final state
   omega : float
     photon frequency
-  debug: boolebn
+  debug: boolean
     it True, print some intermediate values
 
   Returns
@@ -262,41 +266,56 @@ def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=
     return 0.0
   w = omega-0.5/(nprime**2)
   n = 1.0/np.sqrt(2.0*w)
+# The original formula of Gordon is rather complicated. Significantly simpler results are obtained by the simple substitution n->1j*n
+# A small price to pay is to drop the phase factors, irrelevant as long as we compute the ionization rate
   if l == lprime+1:
-    kprime = 1/nprime
-    u = np.exp(2j*np.arctan(1.0/(n*kprime)))
-    x1 = mpmath.hyp2f1(l+1-1j*n,lprime+1-nprime,2*l,1-1.0/u**2)
-    x2 = mpmath.hyp2f1(l-1-1j*n,lprime+1-nprime,2*l,1-1.0/u**2)
-    r = -((x1-u**2*x2)*u**(nprime-lprime-2)).imag
-    r *= (-1)**(nprime-lprime-1)*0.125*np.sqrt(2.0*scipy.special.factorial(nprime+l-1)/scipy.special.factorial(nprime-l))/scipy.special.factorial(2*l-1)
-    r *= n**2.0*(4.0*kprime/(n*(kprime**2+1.0/n**2)))**(l+1)*np.exp(n*(0.5*np.pi-2.0*np.arctan(1.0/(n*kprime))))
+# This is Eq. (28') of Gordon
+#    kprime = 1/nprime
+    u = (1j*n-nprime)/(1j*n+nprime)
+# For complex values of arguments/parameters of hypergeometric functions, the mpmath package is needed
+# Note, however, that all hypergeometric functions boil down to polynomials, so that a faster implementation could be used
+    x1 = mpmath.hyp2f1(l+1-1j*n,lprime+1-nprime,2*l,-4j*n*nprime/((1j*n-nprime)**2))
+    x2 = mpmath.hyp2f1(l-1-1j*n,lprime+1-nprime,2*l,-4j*n*nprime/((1j*n-nprime)**2))
+# As u is always of modulus 1, terms u**(real_power) are only phase factors and dropped
+    r = (x1-u**2*x2)*(u**(1j*n))
+    r *= 0.25*np.sqrt(scipy.special.factorial(nprime+lprime)/scipy.special.factorial(nprime-lprime-1))/scipy.special.factorial(2*l-1)
+#    r *= n**2.0*(4.0*kprime/(n*(kprime**2+1.0/n**2)))**(l+1)
+#    r *= n**2.0*(4*n*nprime/(n**2+nprime**2))**(l+1)
+# In the following equation, one sqrt(n) comes from the sqrt of the factorials
+# An additional n**1.5 comes from the normalization (to be checked...)
+    r *= n**2.0*(4j*n*nprime/((1j*n-nprime)**2))**(l+1)
+#    *np.exp(-2.0*n*np.arctan(1.0/(n*kprime)))
+#    print(np.exp(-2.0*n*np.arctan(1.0/(n*kprime))))
+#    print(((1j*n-nprime)/(1j*n+nprime))**(1j*n))
     for s in range(1,l+1):
       r *= np.sqrt(s**2+n**2)
-    r /= np.sqrt(np.sinh(np.pi*n))
+# In Eq. (28') of Gordon, the first part of the exponential combines with the sinh function to simply give:
+    r /= np.sqrt(1.0-np.exp(-2.0*np.pi*n))
 # r is the radial matrix element
 # To obtain the ionization rate, the angular part has to be taken into account
 # The ionization rate is given by the Fermi golden rule.
-# The normalization of the continuum wavefucntion is such that the density of states is unity
-    rate = 2.0*np.pi*r**2*(l**2/(4*l**2-1))
+# The normalization of the continuum wavefunction is such that the density of states is unity
+    rate = 2.0*np.pi*abs(r)**2*(l**2/(4*l**2-1))
   if l == lprime-1:
-    print('WARNING, this is currently not working')
-    kprime = 1/nprime
-    u = np.exp(2j*np.arctan(1.0/(n*kprime)))
-    x1 = mpmath.hyp2f1(lprime+1-nprime,l+1-1j*n,2*l+2,1-1.0/u**2)
-    x2 = mpmath.hyp2f1(lprime-1-nprime,l+1-1j*n,2*l+2,1-1.0/u**2)
-    r = -((x1-u**(-2)*x2)*u**(n-l-2))
-    r = complex(r)
+# Gordon does not give any equation for this case
+# The simplest is to start from the discrete-discrete matix element and make the change n->1j*n
+    u = (1j*n-nprime)/(1j*n+nprime)
+    x1 = mpmath.hyp2f1(lprime+1-nprime,lprime-1j*n,2*lprime,-4j*n*nprime/((nprime-1j*n)**2))
+    x2 = mpmath.hyp2f1(lprime-1-nprime,lprime-1j*n,2*lprime,-4j*n*nprime/((nprime-1j*n)**2))
+    r = (x1-u**2*x2)*(u**(1j*n))
     if debug:
+# The following line is because of the strange types used by mpmath
+      r = complex(r)
       print('n,l',n,l)
       print('nprime,lprime',nprime,lprime)
       print('u',u,'arg',np.angle(u))
       print('r',r,'arg',np.angle(r))
-    r *= 0.125*np.sqrt(2.0*scipy.special.factorial(nprime+lprime)/scipy.special.factorial(nprime-lprime-1))/scipy.special.factorial(2*lprime-1)
-    r *= n**2.0*(4.0*kprime/(n*(kprime**2+1.0/n**2)))**(l+2)*np.exp(n*(0.5*np.pi-2.0*np.arctan(1.0/(n*kprime))))
-    for s in range(1,l+2):
+    r *= 0.25*np.sqrt(scipy.special.factorial(nprime+lprime)/scipy.special.factorial(nprime-lprime-1))/scipy.special.factorial(2*lprime-1)
+    r *= n**2.0*(4j*n*nprime/((1j*n-nprime)**2))**(lprime+1)
+    for s in range(1,lprime):
       r *= np.sqrt(s**2+n**2)
-    r /= np.sqrt(np.sinh(np.pi*n))
-    rate = 2.0*np.pi*r**2*(lprime**2/(4*lprime**2-1))
+    r /= np.sqrt(1.0-np.exp(-2.0*np.pi*n))
+    rate = 2.0*np.pi*abs(r)**2*(lprime**2/(4*lprime**2-1))
   return rate
 
 def compute_2r_matrix(l: int, nsup: int, alp: complex) -> np.ndarray:
