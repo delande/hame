@@ -160,9 +160,9 @@ def main():
   print('Ionization rate of the n =',nprime,'l =',lprime,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
   """
 
-  omega = 0.2
-  n = 2
-  l = 0
+  omega = 0.05
+  n = 8
+  l = 2
 #  print(hame.ionization_rate_1s(omega))
   x = hame.compute_full_light_shift(n, l, omega, gauge='length', debug=False)
   print('Light-shift     of the n =',n,'l =',l,'state at |omega| =',abs(omega),':',x.real,' (length gauge)')
@@ -171,6 +171,16 @@ def main():
   if (l>0):
     y += hame.ionization_rate(n, l, l-1, omega, debug=False)
   print('Ionization rate computed using the Fermi golden rule :',y,' (analytic result)')
+# This is specfic to the 2s state
+#  z = (hame.partial_light_shift_2s(omega)+hame.partial_light_shift_2s(-omega)+1.0)/omega**2
+# This is specfic to the 1s state
+#  z = (hame.partial_light_shift_1s(omega)+hame.partial_light_shift_1s(-omega)+1.0)/omega**2
+# This is the generic case using the general Gazeau formula
+# Add the +/- contributions and the 1/omega**2 contribution from the A**2 term in velocity gauge
+  z = (hame.I_gazeau(n,l,omega)+hame.I_gazeau(n,l,-omega)+1.0)/omega**2
+  print('Light-shift computed using the Gazeau formula        :',z.real,' (analytic result)')
+  print('Ionization rate computed using the Gazeau formula    :',2.0*z.imag,' (analytic result)')
+  return
 
 if __name__ == "__main__":
   main()

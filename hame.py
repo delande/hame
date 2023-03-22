@@ -1075,7 +1075,7 @@ def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length', 
   if n<=l:
     return 0.0
 # The optimal alp value:
-  alp = n-0.2j
+  alp = 0.5*n-0.3j
 # This is the maximum size of the basis
 # Totally empirical choice |-()
   nsup = 500
@@ -1108,3 +1108,262 @@ def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length', 
       print('Contributions of the A**2 term in velociy gauge:',1.0/omega**2)
   return x
   return x
+
+def partial_light_shift_3s(omega: float) -> complex:
+  """
+  Compute the analytic light-shift of the 3s state.
+
+  Based on Eq. (A1) of ref. [1]_.
+
+  WARNING: This result does not agree with the numerical calculation! Could well be wrong.
+
+  Parameters
+  ----------
+  omega : float
+    Frequency of the photon (can be positive or negative)
+
+  Returns
+  -------
+  complex
+    The light shift (real part) and ionization rate/2 (imaginary part)
+
+  References
+  ----------
+  .. [1] M. haas et al., Phys. Rev. A 73, 052501 (2006)
+  """
+# Upper energy
+  energy = omega-1.0/18.0
+  eta = 1.0/cmath.sqrt(-2*energy)
+  result = mpmath.hyp2f1(1.0,-eta,1.0-eta,((3-eta)/(3+eta))**2)
+  result = 110008287 - 87156324*eta**2 + 29819745*eta**4 - 6022998*eta**6 - 1259712*eta**7 + 2106081*eta**8 + 1912896*eta**9 - 504792*eta**10\
+         - 737856*eta**11 - 31041*eta**12 + 84672*eta**13 + 15538*eta**14 + 3456*eta**7*((27-7*eta**2)*2)*(1-eta**2)*result
+  result *= -54*eta**2/((9-eta**2)**8)
+  return result
+
+def partial_light_shift_1s(omega: float) -> complex:
+  """
+  Compute the analytic light-shift of the 1s state.
+
+  This uses Eq. (3.11) of Ref. [1]_.
+
+  Parameters
+  ----------
+  omega : float
+    Frequency of the photon (can be positive or negative)
+
+  Returns
+  -------
+  complex
+    The light shift (real part) and ionization rate/2 (imaginary part)
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+# Upper energy
+  energy = omega-0.5
+  eta = 1.0/cmath.sqrt(-2*energy)
+  result = 2*(eta**2)*mpmath.hyp2f1(1.0,-1.0-eta,3.0-eta,((1.0-eta)/(1.0+eta))**2)/(((1.0+eta)**2)*(2.0-eta))
+# Alternative expression (should be equal)
+#  result = 128*(eta**5)*mpmath.hyp2f1(4.0,2.0-eta,3.0-eta,((1.0-eta)/(1.0+eta))**2)/(((1.0+eta)**8)*(2.0-eta))
+# Change sign
+  return -result
+
+def partial_light_shift_2s(omega: float) -> complex:
+  """
+  Compute the analytic light-shift of the 2s state.
+
+  This uses Eq. (3.11) of Ref. [1]_.
+
+  Parameters
+  ----------
+  omega : float
+    Frequency of the photon (can be positive or negative)
+
+  Returns
+  -------
+  complex
+    The light shift (real part) and ionization rate/2 (imaginary part)
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+# Upper energy
+  energy = omega-0.125
+  eta = 1.0/cmath.sqrt(-2*energy)
+  result = 4.0*(eta**5)/((3.0-eta)*((1+0.5*eta)**12))*\
+           (4.0*eta**2*mpmath.hyp2f1(6.0,3.0-eta,4.0-eta,((2.0-eta)/(2.0+eta))**2)\
+           +8.0*((1.0-0.25*eta**2)**2)*mpmath.hyp2f1(6.0,2.0-eta,5.0-eta,((2.0-eta)/(2.0+eta))**2)/((2.0-eta)*(4.0-eta)))
+# Change sign
+  return -result
+
+def a_gazeau(n: int, l: int, l0: int) -> float:
+  """
+  Compute the A_{ll0} factor of Gazeau, eq. (3.11) of [1]_.
+
+  Parameters
+  ----------
+  n : int
+    principal quantum number
+  l : int
+    angular momentum
+  l0 : int
+    another angular momentum
+
+  Returns
+  -------
+  float
+    The A_{ll0} factor
+
+  References
+  ----------
+  ..  [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  if abs(l-l0)!=1 or l0<0 or n<2:
+    return 0.0
+  if l==l0+1:
+    return (n+l)*(n+l-1)*l**2/(n*(n-1)*(2*l+1)*(2*l-1))
+  if l==l0-1:
+    return (n-l-1)*(n-l-2)*(l+1)**2/(n*(n-1)*(2*l+1)*(2*l+3))
+
+def b_gazeau(n: int, l: int, l0: int) -> float:
+  """
+  Compute the B_{ll0} factor of Gazeau, eq. (3.11) of [1]_.
+
+  Parameters
+  ----------
+  n : int
+    principal quantum number
+  l : int
+    angular momentum
+  l0 : int
+    another angular momentum
+
+  Returns
+  -------
+  float
+    The B_{ll0} factor
+
+  References
+  ----------
+  ..  [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  if abs(l-l0)!=1 or l0<0:
+    return 0.0
+  if l==l0+1:
+    return (n-l)*(n-l+1)*l**2/(n*(n+1)*(2*l+1)*(2*l-1))
+  if l==l0-1:
+    return (n+l+1)*(n+l+2)*(l+1)**2/(n*(n+1)*(2*l+1)*(2*l+3))
+
+def c_gazeau(n: int, l: int, l0: int) -> float:
+  """
+  Compute the C_{ll0} factor of Gazeau, eq. (3.11) of [1]_.
+
+  Parameters
+  ----------
+  n : int
+    principal quantum number
+  l : int
+    angular momentum
+  l0 : int
+    another angular momentum
+
+  Returns
+  -------
+  float
+    The C_{ll0} factor
+
+  References
+  ----------
+  ..  [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  if abs(l-l0)!=1 or l0<0 or n<2:
+    return 0.0
+  if l==l0+1:
+    return np.sqrt((n+l)*(n+l-1)*(n-l)*(n-l+1)/(n**2*(n-1)*(n+1)))*l**2/((2*l+1)*(2*l-1))
+  if l==l0-1:
+    return np.sqrt((n-l-1)*(n-l-2)*(n+l+1)*(n+l+2)/(n**2*(n-1)*(n+1)))*(l+1)**2/((2*l+1)*(2*l+3))
+
+def s_gazeau(n: int, n0: int, np0: int, l0: int, nu: complex) -> complex:
+  """
+  Compute the S_{n0,np0}(l0,nu) factor of Gazeau, eq. (3.11) of [1]_.
+
+  Parameters
+  ----------
+  n : int
+    principal quantum number
+  n0 : int
+    an intermediate principal quantum number
+  np0: int
+    another intermediate principal quantum number
+  l0 : int
+    an intemnmediate angular momentum
+  nu: complex
+    effective principal quantum number of the upper state
+
+  Returns
+  -------
+  complex
+    The S_{n0,np0}(l0,nu) factor
+
+  References
+  ----------
+  ..  [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)  n : int
+  """
+  if n0<=l0 or np0<=l0 or l0<0:
+    return 0.0
+  ninf = min(n0,np0)
+  nsup = max(n0,np0)
+  r = (1.0-nu/n)/(1.0+nu/n)
+  x=0.0
+  for q in range(ninf-l0):
+    x += (1.0-nu**2/n**2)**(2*q+nsup-ninf)*(4.0*nu/n)**(2*ninf-2*q)*mpmath.hyp2f1(n0+np0,ninf-q-nu,nsup+q+1-nu,r**2)\
+        *scipy.special.gamma(ninf-q-nu)*scipy.special.gamma(2*q+nsup-ninf+1)/scipy.special.gamma(q+nsup+1-nu)\
+        /(scipy.special.factorial(ninf-l0-1-q)*scipy.special.factorial(ninf+l0-q)*scipy.special.factorial(nsup-ninf+q)*scipy.special.factorial(q))
+#    print(n, n0, np0, l0, q, x)
+  x *= np.sqrt(n0*np0*scipy.special.factorial(n0-l0-1)*scipy.special.factorial(np0-l0-1)*scipy.special.factorial(n0+l0)*scipy.special.factorial(np0+l0))
+  x *= (-1**(n0-np0))*(1.0+nu/n)**(-2*(n0+np0))
+  return x
+
+def I_gazeau(n: int, l: int, omega: float) -> complex:
+  """
+  Compute the light-shift of the (n,l) state, using eq. (3.11) of [1]_.
+
+  Parameters
+  ----------
+  n : int
+    principal quantum number
+  l: int
+    angular momentum
+  omega : float
+    Frequency of the photon (can be positive or negative)
+
+  Returns
+  -------
+  complex
+    The light shift (real part) and ionization rate/2 (imaginary part)
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  energy = omega-0.5/(n**2)
+  nu = 1.0/cmath.sqrt(-2*energy)
+  """
+  print(a_gazeau(n,l,l-1))
+  print(s_gazeau(n,n-1,n-1,l-1,nu))
+  print(b_gazeau(n,l,l-1))
+  print(s_gazeau(n,n+1,n+1,l-1,nu))
+  print(c_gazeau(n, l, l-1))
+  print(s_gazeau(n, n-1, n+1, l-1, nu))
+  print(a_gazeau(n,l,l+1))
+  print(s_gazeau(n,n-1,n-1,l+1,nu))
+  print(b_gazeau(n,l,l+1))
+  print(s_gazeau(n,n+1,n+1,l+1,nu))
+  print(c_gazeau(n, l, l+1))
+  print(s_gazeau(n, n-1, n+1, l+1, nu))
+  """
+  x = a_gazeau(n,l,l-1)*s_gazeau(n,n-1,n-1,l-1,nu)+b_gazeau(n,l,l-1)*s_gazeau(n,n+1,n+1,l-1,nu)-2.0*c_gazeau(n, l, l-1)*s_gazeau(n, n-1, n+1, l-1, nu)\
+     +a_gazeau(n,l,l+1)*s_gazeau(n,n-1,n-1,l+1,nu)+b_gazeau(n,l,l+1)*s_gazeau(n,n+1,n+1,l+1,nu)-2.0*c_gazeau(n, l, l+1)*s_gazeau(n, n-1, n+1, l+1, nu)
+  return 0.25*x*nu/n
