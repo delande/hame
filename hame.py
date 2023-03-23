@@ -12,7 +12,7 @@ It checks that results in length and velocity gauges are equal.
 __author__ = "Dominique Delande"
 __copyright__ = "Copyright (C) 2023 Dominique Delande"
 __license__ = "GPL version 2 or later"
-__version__ = "1.1"
+__version__ = "1.2"
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -127,11 +127,11 @@ def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool
       print('nmax = ',n,' residual norm of O*Ot-1 = ',np.linalg.norm(y[0:n,0:n]))
   return x
 
-def gordon_formula(n: int, l: int, nprime: int, lprime: int) -> float:
+def gordon_formula(n: int, l: int, m: int, nprime: int, lprime: int) -> float:
   """
   Compute the matrix element of the dipole operator between eigenstates of the hydrogen atom.
 
-  This is <n l m=0 | z | nprime, lprime, m=0>.
+  This is <n l m | z | nprime, lprime, m>.
   For n=nprime, it is given by Eq. (I-48) in [1]_.
   For n!=nprime, it is computed using the so-called Gordon formula, Eq. (I-49) of ref. [1]_, It was originally given by Eq. (28) of ref [2]_
   and is also reproduced in Eq. (63.2)  of ref. [3]_.
@@ -147,6 +147,8 @@ def gordon_formula(n: int, l: int, nprime: int, lprime: int) -> float:
     Principal quantum number of the first state.
   l : int
     Angular momentum of the first state.
+  m: int
+    Magneiic quantum number of the two states.
   nprime : int
     Principal quantum number of the second state.
   lprime : int
@@ -155,7 +157,7 @@ def gordon_formula(n: int, l: int, nprime: int, lprime: int) -> float:
   Returns
   -------
   float
-    The matrix element <n l m=0 | z | nprime, lprime, m=0>
+    The matrix element <n l m | z | nprime, lprime, m>
 
   Notes
   -----
@@ -165,21 +167,22 @@ def gordon_formula(n: int, l: int, nprime: int, lprime: int) -> float:
 
   References
   ----------
-  .. [1] D. Delande, These d'Etat: Atomes de Rydberg en champs statiques intenses, Universite Pierre et Marie Curie (Paris),
-  1988, https://theses.hal.science/tel-00011864v1
+  .. [1] D. Delande, These d'Etat: Atomes de Rydberg en champs statiques intenses, Universite Pierre et Marie Curie (Paris), 1988, https://theses.hal.science/tel-00011864v1
   .. [2] W. Gordon, Ann. Phys 2, 1031 (1929)
   .. [3] H.A. Bethe and E. E. Salpeter, Quantum Mechanics of One- and Two-Electron Atoms, Springer (1957)
   """
 # The trivial case where |Delta(l)| is not 1
   if abs(l-lprime) != 1:
     return 0.0
-# make sure that lp is l-1
+# make sure that lprime is l-1
   if l<lprime:
     lprime, l = l,lprime
     nprime, n = n, nprime
+  if abs(m)>=l:
+    return 0
 # The n=nprime case is given by Eq. (I-48) in [1]
   if n==nprime:
-    return -1.5*n*math.sqrt((n-l)*(n+l))*math.sqrt((l**2)/(4*l**2-1))
+    return -1.5*n*math.sqrt((n-l)*(n+l))*math.sqrt((l**2-m**2)/(4*l**2-1))
   x = scipy.special.hyp2f1(-nprime+l,-n+l+1,2*l,-4*n*nprime/((n-nprime)**2)) - (((n-nprime)/(n+nprime))**2)*scipy.special.hyp2f1(-nprime+l,-n+l-1,2*l,-4*n*nprime/((n-nprime)**2))
 #  print(x)
   x *= ((4*n*nprime)/((n-nprime)**2))**(l+1)*(((n-nprime)/(n+nprime))**(n+nprime))
@@ -188,7 +191,7 @@ def gordon_formula(n: int, l: int, nprime: int, lprime: int) -> float:
   x *= math.sqrt(2*l*(2*l+1)*scipy.special.comb(n+l,2*l+1)*scipy.special.comb(nprime+l-1,2*l-1))
 #  print(x)
 # the rightmost term is the angular part (from "r" to "z")
-  x *= 0.25*((-1)**(nprime-l))*math.sqrt((l**2)/(4*l**2-1))
+  x *= 0.25*((-1)**(nprime-l))*math.sqrt((l**2-m**2)/(4*l**2-1))
   return x
 
 def ionization_rate_1s(omega: float) -> float:
@@ -228,7 +231,7 @@ def ionization_rate_1s(omega: float) -> float:
   rate = 2.0*np.pi*256.*(n**2/(1.0+n**2))**5*np.exp(-4.0*n*np.arctan(1.0/n))/(3.0*(1.0-np.exp(-2.0*np.pi*n)))
   return rate
 
-def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=False) -> float:
+def ionization_rate(nprime: int, lprime: int, m: int, l: int, omega: float, debug: bool=False) -> float:
   """
   Compute the ionization rate of the (nprime,lprime) state to the l continuum.
 
@@ -244,8 +247,11 @@ def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=
     principal quantum number of the initial state
   lprime: int
     angular momentum of the initial state
+  m: int
+    magnetic quantum number of the initial and final states
   l: int
     angular momentum of the final state
+
   omega : float
     photon frequency
   debug: boolean
@@ -295,7 +301,7 @@ def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=
 # To obtain the ionization rate, the angular part has to be taken into account
 # The ionization rate is given by the Fermi golden rule.
 # The normalization of the continuum wavefunction is such that the density of states is unity
-    rate = 2.0*np.pi*abs(r)**2*(l**2/(4*l**2-1))
+    rate = 2.0*np.pi*abs(r)**2*(l**2-m**2)/(4*l**2-1)
   if l == lprime-1:
 # Gordon does not give any equation for this case
 # The simplest is to start from the discrete-discrete matix element and make the change n->1j*n
@@ -315,7 +321,7 @@ def ionization_rate(nprime: int, lprime: int, l: int, omega: float, debug: bool=
     for s in range(1,lprime):
       r *= np.sqrt(s**2+n**2)
     r /= np.sqrt(1.0-np.exp(-2.0*np.pi*n))
-    rate = 2.0*np.pi*abs(r)**2*(lprime**2/(4*lprime**2-1))
+    rate = 2.0*np.pi*abs(r)**2*(lprime**2-m**2)/(4*lprime**2-1)
   return rate
 
 def compute_2r_matrix(l: int, nsup: int, alp: complex) -> np.ndarray:
@@ -362,7 +368,7 @@ def compute_2r_matrix(l: int, nsup: int, alp: complex) -> np.ndarray:
 #  print(x)
   return x*alp
 
-def compute_z_matrix(l: int, lprime: int, nsup: int, alp: complex) -> np.ndarray:
+def compute_z_matrix(l: int, m: int, lprime: int, nsup: int, alp: complex) -> np.ndarray:
   r"""
   Compute the matrix representing the z operator in a Sturmian basis of parameter alp.
 
@@ -377,6 +383,8 @@ def compute_z_matrix(l: int, lprime: int, nsup: int, alp: complex) -> np.ndarray
   ----------
   l : int
     Angular momentum quantum number on the left side.
+   m: int
+    Magnetic quantum number of the two states.
   lprime: int
     Angular momentum quantum number on the right side.
   nsup : int
@@ -400,29 +408,33 @@ def compute_z_matrix(l: int, lprime: int, nsup: int, alp: complex) -> np.ndarray
 #    my_type = float
   x = np.zeros((nsup-l,nsup-lprime))
   if l==lprime+1:
-  # nprime,lprime -> nprime, lprime+1
+    if abs(m)>lprime:
+      return x
+# nprime,lprime -> nprime, lprime+1
     for nprime in range(l+1,nsup+1):
-      x[nprime-l-1,nprime-lprime-1] = math.sqrt((nprime-lprime-1)*(nprime+lprime+1))*math.sqrt((lprime+1)**2/(4*((lprime+1)**2)-1))
+      x[nprime-l-1,nprime-lprime-1] = math.sqrt((nprime-lprime-1)*(nprime+lprime+1))*math.sqrt(((lprime+1)**2-m**2)/(4*((lprime+1)**2)-1))
   # nprime, lprime -> nprime+1,lprime+1
     for nprime in range(l,nsup):
-      x[nprime-l,nprime-lprime-1] = 0.5*math.sqrt((nprime+lprime+1)*(nprime+lprime+2))*math.sqrt((lprime+1)**2/(4*((lprime+1)**2)-1))
+      x[nprime-l,nprime-lprime-1] = 0.5*math.sqrt((nprime+lprime+1)*(nprime+lprime+2))*math.sqrt(((lprime+1)**2-m**2)/(4*((lprime+1)**2)-1))
   # nprime, lprime -> nprime-1,lprime+1
     for nprime in range(1+2,nsup+1):
-      x[nprime-l-2,nprime-lprime-1] = 0.5*math.sqrt((nprime-lprime-1)*(nprime-lprime-2))*math.sqrt((lprime+1)**2/(4*((lprime+1)**2)-1))
+      x[nprime-l-2,nprime-lprime-1] = 0.5*math.sqrt((nprime-lprime-1)*(nprime-lprime-2))*math.sqrt(((lprime+1)**2-m**2)/(4*((lprime+1)**2)-1))
   if l==lprime-1:
+    if abs(m)>l:
+      return x
   # nprime,lprime -> nprime, lprime-1
     for nprime in range(l+1,nsup+1):
-      x[nprime-l-1,nprime-lprime-1] = math.sqrt((nprime-lprime)*(nprime+lprime))*math.sqrt(lprime**2/(4*(lprime**2)-1))
+      x[nprime-l-1,nprime-lprime-1] = math.sqrt((nprime-lprime)*(nprime+lprime))*math.sqrt((lprime**2-m**2)/(4*(lprime**2)-1))
   # nprime, lprime -> nprime-1,lprime-1
     for nprime in range(l+2,nsup+1):
-      x[nprime-l-2,nprime-lprime-1] = 0.5*math.sqrt((nprime+lprime)*(nprime+lprime-1))*math.sqrt(lprime**2/(4*(lprime**2)-1))
+      x[nprime-l-2,nprime-lprime-1] = 0.5*math.sqrt((nprime+lprime)*(nprime+lprime-1))*math.sqrt((lprime**2-m**2)/(4*(lprime**2)-1))
   # nprime, lprime -> nprime+1,lprime-1
     for nprime in range(l,nsup):
-      x[nprime-l,nprime-lprime-1] = 0.5*math.sqrt((nprime-lprime)*(nprime-lprime+1))*math.sqrt(lprime**2/(4*(lprime**2)-1))
+      x[nprime-l,nprime-lprime-1] = 0.5*math.sqrt((nprime-lprime)*(nprime-lprime+1))*math.sqrt((lprime**2-m**2)/(4*(lprime**2)-1))
 #  print(x)
   return x*alp
 
-def compute_2irpz_matrix(l: int, lprime: int, nsup: int, alp: float) -> np.ndarray:
+def compute_2irpz_matrix(l: int, m:int, lprime: int, nsup: int, alp: float) -> np.ndarray:
   """
   Compute the matrix representing the 2*i*r*pz operator in a Sturmian basis of parameter alp.
 
@@ -439,6 +451,8 @@ def compute_2irpz_matrix(l: int, lprime: int, nsup: int, alp: float) -> np.ndarr
   ----------
   l : int
     Angular momentum quantum number on the left side.
+  m: int
+    Magnetic quantum number of the two states.
   lprime: int
     Angular momentum quantum number on the right side.
   nsup : int
@@ -458,21 +472,25 @@ def compute_2irpz_matrix(l: int, lprime: int, nsup: int, alp: float) -> np.ndarr
   """
   x = np.zeros((nsup-l,nsup-lprime))
   if l==lprime+1:
+    if abs(m)>lprime:
+      return x
   # nprime,lprime -> nprime, lprime+1 is 0
   # nprime, lprime -> nprime+1,lprime+1
     for nprime in range(l,nsup):
-      x[nprime-l,nprime-lprime-1] = -math.sqrt((nprime+lprime+1)*(nprime+lprime+2))*math.sqrt((lprime+1)**2/(4*((lprime+1)**2)-1))
+      x[nprime-l,nprime-lprime-1] = -math.sqrt((nprime+lprime+1)*(nprime+lprime+2))*math.sqrt(((lprime+1)**2-m**2)/(4*((lprime+1)**2)-1))
   # nprime, lprime -> nprime-1,lprime+1
     for nprime in range(1+2,nsup+1):
-      x[nprime-l-2,nprime-lprime-1] = math.sqrt((nprime-lprime-1)*(nprime-lprime-2))*math.sqrt((lprime+1)**2/(4*((lprime+1)**2)-1))
+      x[nprime-l-2,nprime-lprime-1] = math.sqrt((nprime-lprime-1)*(nprime-lprime-2))*math.sqrt(((lprime+1)**2-m**2)/(4*((lprime+1)**2)-1))
   if l==lprime-1:
+    if abs(m)>l:
+      return x
   # nprime,lprime -> nprime, lprime-1 is 0
   # nprime, lprime -> nprime-1,lprime-1
     for nprime in range(l+2,nsup+1):
-      x[nprime-l-2,nprime-lprime-1] = math.sqrt((nprime+lprime)*(nprime+lprime-1))*math.sqrt(lprime**2/(4*(lprime**2)-1))
+      x[nprime-l-2,nprime-lprime-1] = math.sqrt((nprime+lprime)*(nprime+lprime-1))*math.sqrt((lprime**2-m**2)/(4*(lprime**2)-1))
   # nprime, lprime -> nprime+1,lprime-1
     for nprime in range(l,nsup):
-      x[nprime-l,nprime-lprime-1] = -math.sqrt((nprime-lprime)*(nprime-lprime+1))*math.sqrt(lprime**2/(4*(lprime**2)-1))
+      x[nprime-l,nprime-lprime-1] = -math.sqrt((nprime-lprime)*(nprime-lprime+1))*math.sqrt((lprime**2-m**2)/(4*(lprime**2)-1))
 #  print(x)
   return x
 
@@ -576,7 +594,7 @@ def check_orthogonality(n: int, l:int, nprime:int, lprime:int, nsup: int) -> flo
 # Do not forget the normalization factor when going from Sturmian state to hydrogenic state : 1/(sqrt(2)*n) for each state
   return y.dot(dilatated_state)[n-l-1]/(2.0*n*nprime)
 
-def compute_dipole_matrix_element(n: int, l:int, nprime:int, lprime:int) -> float:
+def compute_dipole_matrix_element(n: int, l:int, m: int, nprime:int, lprime:int) -> float:
   """
   Compute the dipole matrix element between eigenstates of the hydrogen atom.
 
@@ -592,6 +610,8 @@ def compute_dipole_matrix_element(n: int, l:int, nprime:int, lprime:int) -> floa
     Principal quantum number of the first state.
   l : int
     Angular momentum of the first state.
+  m : int
+    Magnetic quantum number of the first state.
   nprime : int
     Principal quantum number of the second state.
   lprime : int
@@ -600,7 +620,7 @@ def compute_dipole_matrix_element(n: int, l:int, nprime:int, lprime:int) -> floa
   Returns
   -------
   float
-    The matrix element < n l m=0| z | nprime lprime m=0>
+    The matrix element < n l m| z | nprime lprime m>
 
   """
 # The simplest case
@@ -622,7 +642,7 @@ def compute_dipole_matrix_element(n: int, l:int, nprime:int, lprime:int) -> floa
 # compute the 2r matrix in the Sturmian basis with alp=n
   y = compute_2r_matrix(lprime, nsup, n)
   intermediate_state = y.dot(dilatated_state)
-  z = compute_z_matrix(l, lprime, nsup, n)
+  z = compute_z_matrix(l, m, lprime, nsup, n)
 #  print(y.dot(dilatated_state))
 # Apply it on the dilatated state and make the overlap with the n,l state
 # Do not forget the normalization factor when going from Sturmian state to hydrogenic state : 1/(sqrt(2)*n) for each state
@@ -631,7 +651,7 @@ def compute_dipole_matrix_element(n: int, l:int, nprime:int, lprime:int) -> floa
   return ((-1)**(n+nprime-l-lprime-2))*z.dot(intermediate_state)[n-l-1]/(2.0*n*nprime)
 
 
-def compute_dipole_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lprime:int) -> float:
+def compute_dipole_matrix_element_velocity_gauge(n: int, l: int, m:int, nprime:int, lprime:int) -> float:
   """
   Compute the dipole matrix element between eigenstates of the hydrogen atom in the velocity gauge.
 
@@ -648,6 +668,8 @@ def compute_dipole_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lpri
     Principal quantum number of the first state.
   l : int
     Angular momentum of the first state.
+   m : int
+    Magnetic quantum number of the first state.
   nprime : int
     Principal quantum number of the second state.
   lprime : int
@@ -656,7 +678,7 @@ def compute_dipole_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lpri
   Returns
   -------
   float
-    The matrix element < n l m=0| i*pz | nprime lprime m=0>
+    The matrix element < n l m| i*pz | nprime lprime m>
 
   """
 # The simplest case
@@ -676,7 +698,7 @@ def compute_dipole_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lpri
 # Apply it on the initial state
   dilatated_state = x.dot(initial_state)
 # compute the 2*i*r*pz matrix in the Sturmian basis with alp=n
-  y = compute_2irpz_matrix(l, lprime, nsup, n)
+  y = compute_2irpz_matrix(l, m, lprime, nsup, n)
 #  print(y.dot(dilatated_state))
 # Apply it on the dilatated state and make the overlap with the n,l state
 # Do not forget the normalization factor when going from Sturmian state to hydrogenic state : 1/(sqrt(2)*n) for each state
@@ -684,7 +706,7 @@ def compute_dipole_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lpri
 # The additional phase factor is added here so that one obtains the same result than the usual Gordon formula
   return ((-1)**(n+nprime-l-lprime-2))*y.dot(dilatated_state)[n-l-1]/(2.0*n*nprime)
 
-def compute_partial_two_photon_matrix_element(n: int, l:int, nprime:int, lprime:int, lintermediate: int, nsup: int, alp: float) -> float:
+def compute_partial_two_photon_matrix_element(n: int, l:int, m:int, nprime:int, lprime:int, lintermediate: int, nsup: int, alp: float) -> float:
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom, with intermediate state of well defined angular momentum.
 
@@ -707,6 +729,8 @@ def compute_partial_two_photon_matrix_element(n: int, l:int, nprime:int, lprime:
     Principal quantum number of the first state.
   l : int
     Angular momentum of the first state.
+  m : int
+    Magnetic quantum number of the two states.
   nprime : int
     Principal quantum number of the second state.
   lprime : int
@@ -721,7 +745,7 @@ def compute_partial_two_photon_matrix_element(n: int, l:int, nprime:int, lprime:
   Returns
   -------
   float
-    The matrix element < n l m=0| z 1/(H-Eintermediate) z | nprime lprime m=0>
+    The matrix element < n l m| z 1/(H-Eintermediate) z | nprime lprime m>
 
   """
 # The simplest case
@@ -736,7 +760,7 @@ def compute_partial_two_photon_matrix_element(n: int, l:int, nprime:int, lprime:
   initial_state = np.zeros(nsup-lprime)
   initial_state[nprime-lprime-1] = 1.0
 # Apply the z operator (only the part ending in the lintermediate angular momentum)
-  state = compute_z_matrix(lintermediate, lprime, nsup, nprime).dot(initial_state)
+  state = compute_z_matrix(lintermediate, m, lprime, nsup, nprime).dot(initial_state)
 # Compute the 2r matrix in the Sturmian basis with alp=nprime and apply it on state
   state = compute_2r_matrix(lintermediate, nsup, nprime).dot(state)
 # The gamma dilatation factor necessary to bring the initial state with alp=nprime to alp=alp
@@ -754,14 +778,14 @@ def compute_partial_two_photon_matrix_element(n: int, l:int, nprime:int, lprime:
 # Compute the 2r matrix in the Sturmian basis with alp=alp and apply it on state
   state = compute_2r_matrix(lintermediate, nsup, n).dot(state)
 # Apply the z operator (only the part ending in the l angular momentum)
-  state = compute_z_matrix(l, lintermediate, nsup, n).dot(state)
+  state = compute_z_matrix(l, m, lintermediate, nsup, n).dot(state)
 # Make the overlap with the n,l state
 # Do not forget the normalization factor when going from Sturmian state to hydrogenic state : 1/(sqrt(2)*n) for each state
 # Finally, as noted in the remark page 82 of [1], the phase convention for Sturmian function is different from the one of hydrogenic states
 # The additional phase factor is added here
   return ((-1)**(n+nprime-l-lprime-2))*state[n-l-1]/(2.0*n*nprime)
 
-def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, nprime:int, lprime:int, lintermediate: int, nsup: int, alp: float) -> float:
+def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, m: int, nprime:int, lprime:int, lintermediate: int, nsup: int, alp: float) -> float:
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom, with intermediate state of well defined angular momentum, in the veolcity gauge.
 
@@ -783,6 +807,8 @@ def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, npri
     Principal quantum number of the first state.
   l : int
     Angular momentum of the first state.
+  m : int
+    Magnetic quantum number of the two states.
   nprime : int
     Principal quantum number of the second state.
   lprime : int
@@ -797,7 +823,7 @@ def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, npri
   Returns
   -------
   float
-    The matrix element < n l m=0| pz 1/(H-Eintermediate) pz | nprime lprime m=0>
+    The matrix element < n l m| pz 1/(H-Eintermediate) pz | nprime lprime m>
 
   """
 # The simplest case
@@ -812,7 +838,7 @@ def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, npri
   initial_state = np.zeros(nsup-lprime)
   initial_state[nprime-lprime-1] = 1.0
 # Apply the 2*i*r*pz operator (only the part ending in the lintermediate angular momentum)
-  state = compute_2irpz_matrix(lintermediate, lprime, nsup, nprime).dot(initial_state)
+  state = compute_2irpz_matrix(lintermediate, m, lprime, nsup, nprime).dot(initial_state)
 # The gamma dilatation factor necessary to bring the initial state with alp=nprime to alp=alp
   gamma = math.log(alp/nprime)
 # Compute the dilatation matrix and apply it on state
@@ -826,14 +852,14 @@ def compute_partial_two_photon_matrix_element_velocity_gauge(n: int, l:int, npri
 # Compute the dilatation matrix and apply it on state
   state = compute_dilatation_matrix(2*lintermediate+2, gamma, nsup-lintermediate-1).dot(state)
 # Apply the z operator (only the part ending in the l angular momentum)
-  state = compute_2irpz_matrix(l, lintermediate, nsup, n).dot(state)
+  state = compute_2irpz_matrix(l, m, lintermediate, nsup, n).dot(state)
 # Make the overlap with the n,l state
 # Do not forget the normalization factor when going from Sturmian state to hydrogenic state : 1/(sqrt(2)*n) for each state
 # Finally, as noted in the remark page 82 of [1], the phase convention for Sturmian function is different from the one of hydrogenic states
 # The additional phase factor is added here
   return ((-1)**(n+nprime-l-lprime-2))*state[n-l-1]/(2.0*n*nprime)
 
-def compute_full_two_photon_matrix_element(n: int, l: int, nprime: int, lprime: int, gauge: str='length') -> (float, float):
+def compute_full_two_photon_matrix_element(n: int, l: int, m: int, nprime: int, lprime: int, gauge: str='length') -> (float, float):
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom.
 
@@ -847,6 +873,8 @@ def compute_full_two_photon_matrix_element(n: int, l: int, nprime: int, lprime: 
     Principal quantum number of the first state.
   l : int
     Angular momentum of the first state.
+  m : int
+    Magnetic quantum number of the two states.
   nprime : int
     Principal quantum number of the second state.
   lprime : int
@@ -857,7 +885,7 @@ def compute_full_two_photon_matrix_element(n: int, l: int, nprime: int, lprime: 
   Returns
   -------
   (float, float)
-    The two matrix elements < n l m=0| z 1/(H-Eintermediate) z | nprime lprime m=0> involving the two intermediate l values.
+    The two matrix elements < n l m| z 1/(H-Eintermediate) z | nprime lprime m> involving the two intermediate l values.
     If there is only one possible intermediate l value, the second term is set to 0.
 
   """
@@ -865,6 +893,8 @@ def compute_full_two_photon_matrix_element(n: int, l: int, nprime: int, lprime: 
   if abs(lprime-l) != 2 and abs(lprime-l) != 0:
     return 0.0,0.0
   if n<=l or nprime<=lprime:
+    return 0.0,0.0
+  if abs(m)>min(l,lprime):
     return 0.0,0.0
 # The optimal alp value:
   alp = min(n,nprime)
@@ -877,21 +907,21 @@ def compute_full_two_photon_matrix_element(n: int, l: int, nprime: int, lprime: 
     compute_partial = compute_partial_two_photon_matrix_element_velocity_gauge
   if abs(lprime-l)==2:
 # Only one intermediate l value is possible
-    x1 = compute_partial(n, l, nprime, lprime, (l+lprime)//2, nsup, alp)
+    x1 = compute_partial(n, l, m, nprime, lprime, (l+lprime)//2, nsup, alp)
     x2 = 0.0
   if l==lprime:
-    x1 = compute_partial(n, l, nprime, lprime, l+1, nsup, alp)
+    x1 = compute_partial(n, l, m, nprime, lprime, l+1, nsup, alp)
     if l==0:
       x2 = 0.0
     else:
-      x2 = compute_partial(n, l, nprime, lprime, l-1, nsup, alp)
+      x2 = compute_partial(n, l, m, nprime, lprime, l-1, nsup, alp)
   if gauge=='velocity':
     omega=0.25/nprime**2-0.25/n**2
     x1 /= omega**2
     x2 /= omega**2
   return x1,x2
 
-def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float, nsup: int, alp: complex) -> complex:
+def compute_partial_light_shift(n: int, l:int, m: int, lintermediate: int, omega: float, nsup: int, alp: complex) -> complex:
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom corresponding to the light-shift.
 
@@ -913,9 +943,11 @@ def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float,
   Parameters
   ----------
   n : int
-    Principal quantum number of the first state.
+    Principal quantum number of the state.
   l : int
-    Angular momentum of the first state.
+    Angular momentum of the state.
+  m: int
+    Magnetic quantum number of the state.
   lintermediate : int
     The angular momentum of the intermediate state.
   omega: float
@@ -928,7 +960,7 @@ def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float,
   Returns
   -------
   complex or float
-    The matrix element < n l m=0| z 1/(H-Eintermediate) z | n l m=0>
+    The matrix element < n l m| z 1/(H-Eintermediate) z | n l m>
   """
 # The simplest case
   if abs(l-lintermediate) != 1:
@@ -945,7 +977,7 @@ def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float,
   initial_state = np.zeros(nsup-l)
   initial_state[n-l-1] = 1.0
 # Apply the z operator (only the part ending in the lintermediate angular momentum)
-  state = compute_z_matrix(lintermediate, l, nsup, n).dot(initial_state)
+  state = compute_z_matrix(lintermediate, m, l, nsup, n).dot(initial_state)
 #  print(state)
 # Compute the 2r matrix in the Sturmian basis with alp=alp and apply it on state
   state = compute_2r_matrix(lintermediate, nsup, n).dot(state)
@@ -969,7 +1001,7 @@ def compute_partial_light_shift(n: int, l:int, lintermediate: int, omega: float,
 # It is now sufficient to make the overlap with state1 and correct normalization
   return np.dot(state,state1)/(2.0*n**2)
 
-def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int, omega: float, nsup: int, alp: complex) -> complex:
+def compute_partial_light_shift_velocity_gauge(n: int, l:int, m: int, lintermediate: int, omega: float, nsup: int, alp: complex) -> complex:
   """
   Compute the two photon matrix element between eigenstates of the hydrogen atom corresponding to the light-shift, in the velocity gauge.
 
@@ -989,9 +1021,11 @@ def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int
   Parameters
   ----------
   n : int
-    Principal quantum number of the first state.
+    Principal quantum number of the state.
   l : int
-    Angular momentum of the first state.
+    Angular momentum of the state.
+  m: int
+    Magnetic quantum number of the state.
   lintermediate : int
     The angular momentum of the intermediate state.
   omega: float
@@ -1004,7 +1038,7 @@ def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int
   Returns
   -------
   complex or float
-    The matrix element < n l m=0| i*pz 1/(H-Eintermediate) i*pz | n l m=0>
+    The matrix element < n l m| i*pz 1/(H-Eintermediate) i*pz | n l m>
   """
 # The simplest case
   if abs(l-lintermediate) != 1:
@@ -1021,7 +1055,7 @@ def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int
   initial_state = np.zeros(nsup-l)
   initial_state[n-l-1] = 1.0
 # Apply the 2*i*r*pz operator (only the part ending in the lintermediate angular momentum)
-  state = compute_2irpz_matrix(lintermediate, l, nsup, n).dot(initial_state)
+  state = compute_2irpz_matrix(lintermediate, m, l, nsup, n).dot(initial_state)
 #  print(state)
 # Save state in state1
   state1 = state[:]
@@ -1045,7 +1079,7 @@ def compute_partial_light_shift_velocity_gauge(n: int, l:int, lintermediate: int
 # It is now sufficient to make the overlap with state1 and correct normalization
   return np.dot(state,state1)/(2.0*n**2)
 
-def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length', debug:bool=False) -> complex:
+def compute_full_light_shift(n: int, l: int, m: int, omega: float, gauge: str='length', debug:bool=False) -> complex:
   """
   Compute the light-shift of a eigenstate of the hydrogen atom.
 
@@ -1055,9 +1089,11 @@ def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length', 
   Parameters
   ----------
   n : int
-    Principal quantum number of the first state.
+    Principal quantum number of the state.
   l : int
-    Angular momentum of the first state.
+    Angular momentum of the state.
+  m: int
+    Magnetic quantum number of the state.
   omega: float
     Frequency of the photon
   gauge: str
@@ -1083,8 +1119,8 @@ def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length', 
     compute_partial = compute_partial_light_shift
   else:
     compute_partial = compute_partial_light_shift_velocity_gauge
-  x1 = compute_partial(n, l, l+1, omega, nsup, alp)
-  x2 = compute_partial(n, l, l+1, -omega, nsup, alp)
+  x1 = compute_partial(n, l, m, l+1, omega, nsup, alp)
+  x2 = compute_partial(n, l, m, l+1, -omega, nsup, alp)
   if debug:
     if gauge=='length':
       print('Contributions of states with l+1 angular momentum for frequencies +omega and -omega and total:',x1,x2,x1+x2)
@@ -1094,8 +1130,8 @@ def compute_full_light_shift(n: int, l: int, omega: float, gauge: str='length', 
     x3 = 0.0
     x4 = 0.0
   else:
-    x3 = compute_partial(n, l, l-1, omega, nsup, alp)
-    x4 = compute_partial(n, l, l-1, -omega, nsup, alp)
+    x3 = compute_partial(n, l, m, l-1, omega, nsup, alp)
+    x4 = compute_partial(n, l, m, l-1, -omega, nsup, alp)
   if debug:
     if gauge=='length':
       print('Contributions of states with l-1 angular momentum for frequencies +omega and -omega and total:',x3,x4,x3+x4)
@@ -1198,7 +1234,7 @@ def partial_light_shift_2s(omega: float) -> complex:
 # Change sign
   return -result
 
-def a_gazeau(n: int, l: int, l0: int) -> float:
+def A_gazeau(n: int, l: int, m: int, l0: int) -> float:
   """
   Compute the A_{ll0} factor of Gazeau, eq. (3.11) of [1]_.
 
@@ -1208,6 +1244,8 @@ def a_gazeau(n: int, l: int, l0: int) -> float:
     principal quantum number
   l : int
     angular momentum
+  m : int
+    magnetic quantum number
   l0 : int
     another angular momentum
 
@@ -1223,11 +1261,17 @@ def a_gazeau(n: int, l: int, l0: int) -> float:
   if abs(l-l0)!=1 or l0<0 or n<2:
     return 0.0
   if l==l0+1:
-    return (n+l)*(n+l-1)*l**2/(n*(n-1)*(2*l+1)*(2*l-1))
+    if abs(m)>=l:
+      return 0.0
+    else:
+      return (n+l)*(n+l-1)*(l**2-m**2)/(n*(n-1)*(2*l+1)*(2*l-1))
   if l==l0-1:
-    return (n-l-1)*(n-l-2)*(l+1)**2/(n*(n-1)*(2*l+1)*(2*l+3))
+    if abs(m)>=l+1:
+      return 0.0
+    else:
+      return (n-l-1)*(n-l-2)*((l+1)**2-m**2)/(n*(n-1)*(2*l+1)*(2*l+3))
 
-def b_gazeau(n: int, l: int, l0: int) -> float:
+def B_gazeau(n: int, l: int, m: int, l0: int) -> float:
   """
   Compute the B_{ll0} factor of Gazeau, eq. (3.11) of [1]_.
 
@@ -1237,6 +1281,8 @@ def b_gazeau(n: int, l: int, l0: int) -> float:
     principal quantum number
   l : int
     angular momentum
+  m : int
+    magnetic quantum number
   l0 : int
     another angular momentum
 
@@ -1252,11 +1298,17 @@ def b_gazeau(n: int, l: int, l0: int) -> float:
   if abs(l-l0)!=1 or l0<0:
     return 0.0
   if l==l0+1:
-    return (n-l)*(n-l+1)*l**2/(n*(n+1)*(2*l+1)*(2*l-1))
+    if abs(m)>=l:
+      return 0.0
+    else:
+      return (n-l)*(n-l+1)*(l**2-m**2)/(n*(n+1)*(2*l+1)*(2*l-1))
   if l==l0-1:
-    return (n+l+1)*(n+l+2)*(l+1)**2/(n*(n+1)*(2*l+1)*(2*l+3))
+    if abs(m)>=l+1:
+      return 0.0
+    else:
+     return (n+l+1)*(n+l+2)*((l+1)**2-m**2)/(n*(n+1)*(2*l+1)*(2*l+3))
 
-def c_gazeau(n: int, l: int, l0: int) -> float:
+def C_gazeau(n: int, l: int, m:int, l0: int) -> float:
   """
   Compute the C_{ll0} factor of Gazeau, eq. (3.11) of [1]_.
 
@@ -1266,6 +1318,8 @@ def c_gazeau(n: int, l: int, l0: int) -> float:
     principal quantum number
   l : int
     angular momentum
+  m : int
+    magnetic quantum number
   l0 : int
     another angular momentum
 
@@ -1281,11 +1335,17 @@ def c_gazeau(n: int, l: int, l0: int) -> float:
   if abs(l-l0)!=1 or l0<0 or n<2:
     return 0.0
   if l==l0+1:
-    return np.sqrt((n+l)*(n+l-1)*(n-l)*(n-l+1)/(n**2*(n-1)*(n+1)))*l**2/((2*l+1)*(2*l-1))
+    if abs(m)>=l:
+      return 0.0
+    else:
+     return np.sqrt((n+l)*(n+l-1)*(n-l)*(n-l+1)/(n**2*(n-1)*(n+1)))*(l**2-m**2)/((2*l+1)*(2*l-1))
   if l==l0-1:
-    return np.sqrt((n-l-1)*(n-l-2)*(n+l+1)*(n+l+2)/(n**2*(n-1)*(n+1)))*(l+1)**2/((2*l+1)*(2*l+3))
+    if abs(m)>=l+1:
+      return 0.0
+    else:
+      return np.sqrt((n-l-1)*(n-l-2)*(n+l+1)*(n+l+2)/(n**2*(n-1)*(n+1)))*((l+1)**2-m**2)/((2*l+1)*(2*l+3))
 
-def s_gazeau(n: int, n0: int, np0: int, l0: int, nu: complex) -> complex:
+def S_gazeau(n: int, n0: int, np0: int, l0: int, nu: complex) -> complex:
   """
   Compute the S_{n0,np0}(l0,nu) factor of Gazeau, eq. (3.11) of [1]_.
 
@@ -1326,7 +1386,7 @@ def s_gazeau(n: int, n0: int, np0: int, l0: int, nu: complex) -> complex:
   x *= (-1**(n0-np0))*(1.0+nu/n)**(-2*(n0+np0))
   return x
 
-def I_gazeau(n: int, l: int, omega: float) -> complex:
+def I_gazeau(n: int, l: int, m: int, omega: float) -> complex:
   """
   Compute the light-shift of the (n,l) state, using eq. (3.11) of [1]_.
 
@@ -1336,6 +1396,8 @@ def I_gazeau(n: int, l: int, omega: float) -> complex:
     principal quantum number
   l: int
     angular momentum
+  m : int
+    magnetic quantum number
   omega : float
     Frequency of the photon (can be positive or negative)
 
@@ -1351,19 +1413,19 @@ def I_gazeau(n: int, l: int, omega: float) -> complex:
   energy = omega-0.5/(n**2)
   nu = 1.0/cmath.sqrt(-2*energy)
   """
-  print(a_gazeau(n,l,l-1))
-  print(s_gazeau(n,n-1,n-1,l-1,nu))
-  print(b_gazeau(n,l,l-1))
-  print(s_gazeau(n,n+1,n+1,l-1,nu))
-  print(c_gazeau(n, l, l-1))
-  print(s_gazeau(n, n-1, n+1, l-1, nu))
-  print(a_gazeau(n,l,l+1))
-  print(s_gazeau(n,n-1,n-1,l+1,nu))
-  print(b_gazeau(n,l,l+1))
-  print(s_gazeau(n,n+1,n+1,l+1,nu))
-  print(c_gazeau(n, l, l+1))
-  print(s_gazeau(n, n-1, n+1, l+1, nu))
+  print(A_gazeau(n,l,m,l-1))
+  print(S_gazeau(n,n-1,n-1,l-1,nu))
+  print(B_gazeau(n,l,m,l-1))
+  print(S_gazeau(n,n+1,n+1,l-1,nu))
+  print(C_gazeau(n, l, m, l-1))
+  print(S_gazeau(n, n-1, n+1, l-1, nu))
+  print(A_gazeau(n,l,m,l+1))
+  print(S_gazeau(n,n-1,n-1,l+1,nu))
+  print(B_gazeau(n,l,m,l+1))
+  print(S_gazeau(n,n+1,n+1,l+1,nu))
+  print(C_gazeau(n, l, m, l+1))
+  print(S_gazeau(n, n-1, n+1, l+1, nu))
   """
-  x = a_gazeau(n,l,l-1)*s_gazeau(n,n-1,n-1,l-1,nu)+b_gazeau(n,l,l-1)*s_gazeau(n,n+1,n+1,l-1,nu)-2.0*c_gazeau(n, l, l-1)*s_gazeau(n, n-1, n+1, l-1, nu)\
-     +a_gazeau(n,l,l+1)*s_gazeau(n,n-1,n-1,l+1,nu)+b_gazeau(n,l,l+1)*s_gazeau(n,n+1,n+1,l+1,nu)-2.0*c_gazeau(n, l, l+1)*s_gazeau(n, n-1, n+1, l+1, nu)
+  x = A_gazeau(n,l,m,l-1)*S_gazeau(n,n-1,n-1,l-1,nu)+B_gazeau(n,l,m,l-1)*S_gazeau(n,n+1,n+1,l-1,nu)-2.0*C_gazeau(n, l, m, l-1)*S_gazeau(n, n-1, n+1, l-1, nu)\
+     +A_gazeau(n,l,m,l+1)*S_gazeau(n,n-1,n-1,l+1,nu)+B_gazeau(n,l,m,l+1)*S_gazeau(n,n+1,n+1,l+1,nu)-2.0*C_gazeau(n, l, m, l+1)*S_gazeau(n, n-1, n+1, l+1, nu)
   return 0.25*x*nu/n
