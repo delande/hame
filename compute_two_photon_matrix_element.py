@@ -54,6 +54,8 @@ def main():
   -------
   None.
   """
+
+  """
   n = 8
   l = 3
   nprime = 3
@@ -68,14 +70,14 @@ def main():
   if n!=nprime:
     print('<',n,l,m,'| i*pz/omega |',nprime,lprime,m,'> from numerics :',result_pz/(0.5/n**2-0.5/nprime**2))
   print()
+  """
 
 
 
-
-  n = 4
-  l = 2
-  nprime = 8
-  lprime = 2
+  n = 8
+  l = 0
+  nprime = 1
+  lprime = 0
   m = 0
   print('Example of two-photon transition')
   print('Transition n =',nprime,'l =',lprime,'m = ', m,'to n =',n,'l =',l,'m = ',m)
@@ -97,6 +99,10 @@ def main():
   print('Total matrix element  in velocity gauge:', x1+x2)
   print()
 
+
+  print(hame.two_photon_matrix_element_from_1s(8, 0))
+
+  """
   n = 2
   l = 1
   nprime = 8
@@ -121,7 +127,9 @@ def main():
   print('Light-shift     of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (velocity gauge)')
   print('Ionization rate of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
   print()
+  """
 
+  """
   omega = 0.05859375
   n = 8
   l = 1
@@ -147,6 +155,7 @@ def main():
   print('Light-shift computed using the Gazeau formula        :',z.real,' (analytic result)')
   print('Ionization rate computed using the Gazeau formula    :',2.0*z.imag,' (analytic result)')
   return
+  """
 
 if __name__ == "__main__":
   main()

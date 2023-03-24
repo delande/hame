@@ -1429,3 +1429,214 @@ def I_gazeau(n: int, l: int, m: int, omega: float) -> complex:
   x = A_gazeau(n,l,m,l-1)*S_gazeau(n,n-1,n-1,l-1,nu)+B_gazeau(n,l,m,l-1)*S_gazeau(n,n+1,n+1,l-1,nu)-2.0*C_gazeau(n, l, m, l-1)*S_gazeau(n, n-1, n+1, l-1, nu)\
      +A_gazeau(n,l,m,l+1)*S_gazeau(n,n-1,n-1,l+1,nu)+B_gazeau(n,l,m,l+1)*S_gazeau(n,n+1,n+1,l+1,nu)-2.0*C_gazeau(n, l, m, l+1)*S_gazeau(n, n-1, n+1, l+1, nu)
   return 0.25*x*nu/n
+
+def a_gazeau(n: int, l: int) -> float:
+  """
+  Compute the a(n,l) factor of Gazeau, eq. (D1) of Ref. [1]_.
+
+  Parameters
+  ----------
+  n : int
+    Principal quantum number
+  l : int
+    Angular momentum
+
+  Returns
+  -------
+  float
+    a(n,l)
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  if n<=1:
+    return 0.0
+  else:
+    return 0.5*math.sqrt((n+l)*(n+l-1)/(n*(n-1)))
+
+def b_gazeau(l: int, m: int) -> float:
+  """
+  Compute the b(l,m) factor of Gazeau, eq. (D1) of Ref. [1]_.
+
+  Parameters
+  ----------
+  l : int
+    Angular momentum
+  m : int
+    Magnetic quantum number
+
+  Returns
+  -------
+  float
+    b(l,m)
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  if l==0:
+    return 0.0
+  else:
+    return math.sqrt((l**2-m**2)/((2*l+1)*(2*l-1)))
+
+def c_gazeau(l: int, m: int) -> float:
+  """
+  Compute the c(l,m) factor of Gazeau, eq. (D1) of Ref. [1]_.
+
+  Parameters
+  ----------
+  l : int
+    Angular momentum
+  m : int
+    Magnetic quantum number
+
+  Returns
+  -------
+  float
+    c(l,m)
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  if l==0:
+    return 0.0
+  else:
+    return math.sqrt((l+m)*(l+m-1)/((2*l+1)*(2*l-1)))
+
+def T_gazeau(n: int, l: int, m: int, nprime: int, lprime: int) -> float:
+  """
+  Compute the T factor of Gazeau, eq. (D3) of Ref. [1]_.
+
+  For linear polarization along z, it coincides with C_{N',N} of eq. (D2)
+
+  Parameters
+  ----------
+  n : int
+    Principal quantum number
+  l : int
+    Angular momentum
+  m : int
+    Magnetic quantum number
+  nprime : int
+    Principal quantum number of the other state
+  lprime : int
+    Angular momentum of the other state
+
+  Returns
+  -------
+  float
+    T_{n l,nprime lprime}^m
+
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
+  """
+  x = 0.0
+  if n==nprime+1 and l==lprime+1:
+    x += a_gazeau(n,l)*b_gazeau(l,m)
+  if n==nprime+1 and l==lprime-1:
+    x -= a_gazeau(n,-l-1)*b_gazeau(l+1,m)
+  if n==nprime-1 and l==lprime+1:
+    x -= a_gazeau(n+1,-l)*b_gazeau(l,m)
+  if n==nprime-1 and l==lprime-1:
+    x += a_gazeau(n+1,l+1)*b_gazeau(l+1,m)
+  return x
+
+def g1(nu: float, n0: int, n: int, nprime: int) -> float:
+  """
+  Compute the g^1_{0,n')(nu,n0,n) function of the (not numbered) equation, page 238 of Ref. [1]_.
+
+  Parameters
+  ----------
+  nu : float
+    Effective principal quantum number of the intermediate state
+  n0 : int
+    Principal quantum number of the initial state
+  nprime : int
+    Another principal quantum number
+
+  Returns
+  -------
+  float
+    The g^1_{0,n')(nu,n0,n) function
+
+  References
+  ----------
+  .. [1] N.L. Manakov et al., Phys. Lett. A 237, 234 (1998)
+  """
+  y = (n0-nu)*(n+nu)/((n0+nu)*(n-nu))
+  yprime = (n0-nu)*(n-nu)/((n0+nu)*(n+nu))
+# print(nu,y,yprime)
+#  print(mpmath.appellf1(2-nu,-nprime,nprime+4,3-nu,y,yprime))
+  x = nu*(((n-nu)/(n+nu))**nprime)*((16*n0*n*nu**2)/(((n0+nu)**2)*((n+nu)**2)))**2*mpmath.appellf1(2-nu,-nprime,nprime+4,3-nu,y,yprime)/(6*(2-nu))
+#  print(x)
+  return x
+
+def two_photon_matrix_element_from_1s(n: int, l:int) -> float:
+  """
+  Compute the two-photon matrix element from 1s state to (n,l) state.
+
+  Of course, one should have l=0 or 2.
+
+  This uses the (not numbered) equations, page 238 of Ref. [1]_.
+  Note that the T_{n0,n}(nu) should be multiplied by 0.5 to get the correct results.
+
+  Parameters
+  ----------
+  n : int
+    Principal quantum number of the upper state
+  l : int
+    Angular momentum of the upper state
+
+  Returns
+  -------
+  float
+    The two-photon matrix element between (n=1,l=0,m=0) and the (n,l,m=0) states
+
+  References
+  ----------
+  .. [1] N.L. Manakov et al., Phys. Lett. A 237, 234 (1998)
+  """
+  if l!=0 and l!=2:
+    return 0.0
+  energy_intermediaire = -0.25-0.25/(n**2)
+  nu = 1.0/math.sqrt(-2.0*energy_intermediaire)
+  x = math.sqrt(1.0/n)*0.5*((n+1)*(n+2)*g1(nu, 1, n, n-1)-(n-1)*(n-2)*g1(nu, 1, n, n-3))
+  omega = 0.25-0.25/(n**2)
+  return x/omega**2
+
+def two_photon_matrix_element_from_2s(n: int, l:int) -> float:
+  """
+  Compute the two-photon matrix element from 2s state to (n,l) state.
+
+  Of course, one should have l=0 or 2.
+
+  This uses the (not numbered) equations, page 238 of Ref. [1]_.
+  Note that the T_{n0,n}(nu) should be multiplied by 0.5 to get the correct results.
+
+  Parameters
+  ----------
+  n : int
+    Principal quantum number of the upper state
+  l : int
+    Angular momentum of the upper state
+
+  Returns
+  -------
+  float
+    The two-photon matrix element between (n=2,l=0,m=0) and the (n,l,m=0) states
+
+  References
+  ----------
+  .. [1] N.L. Manakov et al., Phys. Lett. A 237, 234 (1998)
+  """
+  if l!=0 and l!=2:
+    return 0.0
+  energy_intermediaire = -0.0625-0.25/(n**2)
+  nu = 1.0/math.sqrt(-2.0*energy_intermediaire)
+  x = math.sqrt(2.0/n)*(0.5*((n+1)*(n+2)*g1(nu, 2, n, n-1)-(n-1)*(n-2)*g1(nu, 2, n, n-3))-64*n**3*nu**2*(((n-2)/(n+2))**n)/(3*(nu**2-4)*((n**2-4)**2)))
+  omega = 0.0625-0.25/(n**2)
+#  print(nu,omega)
+  return x/omega**2
