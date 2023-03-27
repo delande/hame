@@ -74,9 +74,9 @@ def main():
 
 
 
-  n = 8
-  l = 0
-  nprime = 1
+  n = 3
+  l = 2
+  nprime = 10
   lprime = 0
   m = 0
   print('Example of two-photon transition')
@@ -100,7 +100,11 @@ def main():
   print()
 
 
-  print(hame.two_photon_matrix_element_from_1s(8, 0))
+#  print(hame.two_photon_matrix_element_from_1s(2, 0))
+#  print(hame.two_photon_matrix_element_from_1s_Marian(nprime,lprime))
+  print(hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
+
+#  print(hame.Two_photon_matrix_element_Gazeau(n, l, m, nprime, lprime))
 
   """
   n = 2

@@ -38,6 +38,7 @@ import cmath
 import scipy.special
 import sys
 import mpmath
+from sympy.physics.wigner import clebsch_gordan
 
 def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool=False) -> np.ndarray:
   r"""
@@ -1544,6 +1545,119 @@ def T_gazeau(n: int, l: int, m: int, nprime: int, lprime: int) -> float:
     x += a_gazeau(n+1,l+1)*b_gazeau(l+1,m)
   return x
 
+def Integral_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int, n0: int, l0: int, nprime0: int, lprime0: int, nu: float) -> float:
+  """
+  Compute the Gazeau integral, eq. (3.10) of Ref. [1]_.
+
+  Parameters
+  ----------
+  n : int
+    DESCRIPTION.
+  l : int
+    DESCRIPTION.
+  m : int
+    DESCRIPTION.
+  nprime : int
+    DESCRIPTION.
+  lprime : int
+    DESCRIPTION.
+  n0 : int
+    DESCRIPTION.
+  l0 : int
+    DESCRIPTION.
+  nprime0 : int
+    DESCRIPTION.
+  nu : float
+    DESCRIPTION.
+
+  Returns
+  -------
+  float
+    DESCRIPTION.
+
+  """
+  if l0!=lprime0 or n0<=l0 or nprime0<=l0:
+    return 0.0
+  rn = (1-nu/n)/(1+nu/n)
+  rnprime = (1-nu/nprime)/(1+nu/nprime)
+  if n0<nprime0:
+    ninf = n0
+    nsup = nprime0
+    rinf = rnprime
+    rsup = rn
+  else:
+    ninf = nprime0
+    nsup = n0
+    rinf = rn
+    rsup = rnprime
+  qmax = ninf-l0-1
+  x = 0.0
+  for q in range(qmax+1):
+    sigmamax = nsup-ninf+q
+    for sigma in range(sigmamax+1):
+      y = ((1-nu**2/n**2)*(1-nu**2/nprime**2)*n*nprime/(16*nu**2))**(q-ninf)
+      print('1',y)
+      y *= (-1)**sigma*rinf**(ninf+sigma)*scipy.special.hyp2f1(-q,-sigma,q+nsup-ninf-sigma+1,(rsup/rinf)**2)
+      print('2',y)
+#      print(y,sigma,q,ninf-l0-1-q,ninf+l0-q,nsup+q-sigma-nu)
+#      print(scipy.special.factorial(sigma)*scipy.special.factorial(q)*scipy.special.factorial(ninf-l0-1-q)*scipy.special.factorial(ninf+l0-q))
+      y /= scipy.special.factorial(sigma)*scipy.special.factorial(q)*scipy.special.factorial(ninf-l0-1-q)*scipy.special.factorial(ninf+l0-q)
+      print('3',y)
+      print(scipy.special.hyp2f1(n0+nprime0,nsup+q-sigma-nu,nsup+q-sigma-nu+1,rn*rnprime))
+      print(rn*rnprime)
+      y *= scipy.special.hyp2f1(n0+nprime0,nsup+q-sigma-nu,nsup+q-sigma-nu+1,rn*rnprime)/(nsup+q-sigma-nu)
+      print('4',y)
+      print('Inside Integral',q,sigma)
+#      print(y)
+      x += y
+      print('x=',x)
+  x *= math.sqrt(n0*nprime0*scipy.special.factorial(n0+l0)*scipy.special.factorial(nprime0+l0)*scipy.special.factorial(n0-l0-1)*scipy.special.factorial(nprime0-l0-1))
+  print('xx=',x)
+  return x
+
+def Two_photon_matrix_element_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int) -> float:
+  """
+  Compute the.
+
+  Parameters
+  ----------
+  n : int
+    DESCRIPTION.
+  l : int
+    DESCRIPTION.
+  m : int
+    DESCRIPTION.
+  nprime : int
+    DESCRIPTION.
+  lprime : int
+    DESCRIPTION.
+
+  Returns
+  -------
+  float
+    DESCRIPTION.
+
+  """
+  energy_intermediaire = -0.25/(nprime**2)-0.25/(n**2)
+  nu = 1.0/math.sqrt(-2.0*energy_intermediaire)
+  omega = 0.25/(nprime**2)-0.25/(n**2)
+  print('nu=',nu,'omega=',omega,'n=',n,'l=',l,'m=',m,'nprime=',nprime,'lprime=',lprime)
+  x = 0.0
+  for n0 in (n-1,n+1):
+    for l0 in (l-1, l+1):
+      print('n0=',n0,'l0=',l0)
+      if l0<0:
+        continue
+      for nprime0 in (nprime-1,nprime+1):
+        for lprime0 in (lprime-1,lprime+1):
+          if lprime0<0:
+            continue
+          x += T_gazeau(nprime,lprime,m,nprime0,lprime0)*T_gazeau(n0,l0,m,n,l)*Integral_Gazeau(n, l, m, nprime, lprime, n0, l0, nprime0, lprime0, nu)
+          print('Inside Two',n0,l0,nprime0,lprime0,T_gazeau(nprime0,lprime0,m,nprime,lprime),T_gazeau(n,l,m,n0,l0),Integral_Gazeau(n, l, m, nprime, lprime, n0, l0, nprime0, lprime0, nu))
+  x *= -nu/math.sqrt(n*nprime)
+  return x/omega**2
+
+
 def g1(nu: float, n0: int, n: int, nprime: int) -> float:
   """
   Compute the g^1_{0,n')(nu,n0,n) function of the (not numbered) equation, page 238 of Ref. [1]_.
@@ -1639,4 +1753,187 @@ def two_photon_matrix_element_from_2s(n: int, l:int) -> float:
   x = math.sqrt(2.0/n)*(0.5*((n+1)*(n+2)*g1(nu, 2, n, n-1)-(n-1)*(n-2)*g1(nu, 2, n, n-3))-64*n**3*nu**2*(((n-2)/(n+2))**n)/(3*(nu**2-4)*((n**2-4)**2)))
   omega = 0.0625-0.25/(n**2)
 #  print(nu,omega)
+  return x/omega**2
+
+def two_photon_matrix_element_from_1s_Marian(n: int, l:int) -> float:
+  """
+  Compute the two-photon matrix element from 1s state to (n,l) state.
+
+  Of course, one should have l=0 or 2.
+
+  This uses the eqs. (33-34), page 3821 of Ref. [1]_.
+
+  Parameters
+  ----------
+  n : int
+    Principal quantum number of the upper state
+  l : int
+    Angular momentum of the upper state
+
+  Returns
+  -------
+  float
+    The two-photon matrix element between (n=1,l=0,m=0) and the (n,l,m=0) states
+
+  References
+  ----------
+  .. [1] T.A. Marian, Phys. Rev. A 39, 3816 (1989)
+  """
+  if l!=0 and l!=2:
+    return 0.0
+  energy_intermediaire = -0.25-0.25/(n**2)
+  nu = 1.0/math.sqrt(-2.0*energy_intermediaire)
+  omega = 0.25-0.25/(n**2)
+  y = (1-nu)*(n+nu)/((1+nu)*(n-nu))
+  yprime = (1-nu)*(n-nu)/((1+nu)*(n+nu))
+  if l==0:
+    x = 64*n**1.5*nu**5*(n-nu)**(n-3)*((n+1)*(n+2)*(n-nu)**2*mpmath.appellf1(2-nu,n+3,-n+1,3-nu,yprime,y)-(n-1)*(n-2)*(n+nu)**2*mpmath.appellf1(2-nu,n+1,-n+3,3-nu,yprime,y))/((1+nu)**4*(n+nu)**(n+3)*(2-nu))
+    x /= 3
+  if l==2:
+    x = 64*n**1.5*nu**5*(n-nu)**(n-3)*math.sqrt((n**2-1)*(n**2-4))*((n-nu)**2*mpmath.appellf1(2-nu,n+3,-n+1,3-nu,yprime,y)-(n+nu)**2*mpmath.appellf1(2-nu,n+1,-n+3,3-nu,yprime,y))/((1+nu)**4*(n+nu)**(n+3)*(2-nu))
+    return x
+    x *= 2*math.sqrt(5)/15
+  return x/omega**2
+
+def d_Marian(n: int, l: int, q: int, s: int) -> int:
+  """
+  Compute.
+
+  Parameters
+  ----------
+  n : int
+    DESCRIPTION.
+  l : int
+    DESCRIPTION.
+  q : int
+    DESCRIPTION.
+  s : int
+    DESCRIPTION.
+
+  Returns
+  -------
+  int
+    DESCRIPTION.
+
+  """
+  if q==1 and s==1:
+    return -(n-l-1)*(n-l-2)
+  if q==1 and s==-1:
+    return (n+l+1)*(n+l+2)
+  if q==-1 and s==1:
+    return -1
+  if q==-1 and s==-1:
+    return 1
+
+def lambda_Marian(l: int, q: int) -> int:
+  """
+  Compute.
+
+  Parameters
+  ----------
+  l : int
+    DESCRIPTION.
+  q : int
+    DESCRIPTION.
+
+  Returns
+  -------
+  int
+    DESCRIPTION.
+
+  """
+  if q==1:
+    return -(l+1)
+  if q==-1:
+    return l
+
+def b_Marian(n: int, l: int, nprime: int, lprime: int, q: int, qprime: int, tau: float) -> float:
+  """
+  Compute.
+
+  Parameters
+  ----------
+  n : int
+    DESCRIPTION.
+  l : int
+    DESCRIPTION.
+  nprime : int
+    DESCRIPTION.
+  lprime : int
+    DESCRIPTION.
+  q : int
+    DESCRIPTION.
+  qprime : int
+    DESCRIPTION.
+  tau : float
+    DESCRIPTION.
+
+  Returns
+  -------
+  float
+    DESCRIPTION.
+
+  """
+  zeta = (nprime-tau)*(n-tau)/((nprime+tau)*(n+tau))
+  y = 0.0
+  numax = 100
+  for s in (-1,1):
+    for sprime in (-1,1):
+      x = 0.0
+      z = d_Marian(n,l,q,s)*d_Marian(nprime,lprime,qprime,sprime)*(((nprime-tau)/(nprime+tau))**(nprime-sprime))*(((n-tau)/(n+tau))**(n-s))
+      if z!= 0.0:
+        nu_is_large_enough = False
+        for nu in range(numax):
+          xold = x
+          x = xold + scipy.special.factorial(nu+2*l+2*q+1)*zeta**nu\
+              *scipy.special.hyp2f1(-nu,l+q+1+sprime-nprime,2*l+2*q+2,-4*nprime*tau/((nprime-tau)**2))\
+              *scipy.special.hyp2f1(-nu,l+q+1+s-n,2*l+2*q+2,-4*n*tau/((n-tau)**2))\
+              /(scipy.special.factorial(nu)*(nu+l+q+1-tau))
+#         print('q,qprime,nu,x',q,qprime,nu,x)
+          if abs(x-xold)<1.e-12*x:
+            nu_is_large_enough = True
+            break
+        if not nu_is_large_enough:
+          print('WARNING, b_Marian(',n,l,nprime,lprime,q,qprime,tau,') not converged at nu=',numax,x)
+        y += x*z
+#        print('y',y)
+  y *= tau*math.sqrt(scipy.special.factorial(nprime+lprime)*scipy.special.factorial(n+l)/(scipy.special.factorial(nprime-lprime-1)*scipy.special.factorial(n-l-1)))\
+      *(16*n*nprime*tau**2/((n**2-tau**2)*(nprime**2-tau**2)))**(l+q+1)/(scipy.special.factorial(2*l+2*q+1)**2*4*n*nprime)
+  return y
+
+def two_photon_matrix_element_Marian(n: int, l: int, m: int, nprime: int, lprime: int) -> float:
+  """
+  Compute.
+
+  Parameters
+  ----------
+  n : int
+    DESCRIPTION.
+  l : int
+    DESCRIPTION.
+  m : int
+    DESCRIPTION.
+  nprime : int
+    DESCRIPTION.
+  lprime : int
+    DESCRIPTION.
+
+  Returns
+  -------
+  float
+    DESCRIPTION.
+
+  """
+  energy_intermediaire = -0.25/(nprime**2)-0.25/(n**2)
+  tau = 1.0/math.sqrt(-2.0*energy_intermediaire)
+  omega = 0.25/(nprime**2)-0.25/(n**2)
+#  return b_Marian(1,0,nprime,2,1,-1,tau)
+  x = 0.0
+  for q in (-1,1):
+    for qprime in (-1,1):
+      if lprime+qprime==l+q and l+q>=0:
+        x += q*qprime*math.sqrt(abs(lambda_Marian(l,q)*lambda_Marian(lprime,qprime))/((2*l+1)*(2*lprime+1)))\
+            *b_Marian(n, l, nprime, lprime, q, qprime, tau)\
+            *clebsch_gordan(l+q,1,lprime,m,0,m)*clebsch_gordan(l+q,1,l,m,0,m)
+#        print('Inside 2-phi-Marian',q,qprime,x)
   return x/omega**2
