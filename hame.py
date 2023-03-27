@@ -12,7 +12,7 @@ It checks that results in length and velocity gauges are equal.
 __author__ = "Dominique Delande"
 __copyright__ = "Copyright (C) 2023 Dominique Delande"
 __license__ = "GPL version 2 or later"
-__version__ = "1.2"
+__version__ = "1.3"
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ import cmath
 import scipy.special
 import sys
 import mpmath
-from sympy.physics.wigner import clebsch_gordan
+#from sympy.physics.wigner import clebsch_gordan
 
 def compute_dilatation_matrix(two_k: int, gamma: complex, nsup: int, debug: bool=False) -> np.ndarray:
   r"""
