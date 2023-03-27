@@ -74,9 +74,9 @@ def main():
 
 
 
-  n = 3
-  l = 2
-  nprime = 10
+  n = 2
+  l = 0
+  nprime = 3
   lprime = 0
   m = 0
   print('Example of two-photon transition')
@@ -99,12 +99,15 @@ def main():
   print('Total matrix element  in velocity gauge:', x1+x2)
   print()
 
+  if n==1 and l==0 and lprime==0:
+    print('Matrix element from Manakov et al.:',hame.two_photon_matrix_element_from_1s_to_ns_Manakov(nprime))
+  if n==2 and l==0 and lprime==0:
+    print('Matrix element from Manakov et al.:',hame.two_photon_matrix_element_from_2s_to_ns_Manakov(nprime))
+  if n==1 and l==0:
+    print('Matrix element from Marian 1s     :',hame.two_photon_matrix_element_from_1s_Marian(nprime,lprime))
+  print('Matrix element from Gazeau        :',hame.two_photon_matrix_element_Gazeau(n,l,m,nprime,lprime))
+  print('Matrix element from Marian        :',hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
 
-#  print(hame.two_photon_matrix_element_from_1s(2, 0))
-#  print(hame.two_photon_matrix_element_from_1s_Marian(nprime,lprime))
-  print(hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
-
-#  print(hame.Two_photon_matrix_element_Gazeau(n, l, m, nprime, lprime))
 
   """
   n = 2
