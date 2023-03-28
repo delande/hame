@@ -38,9 +38,9 @@ It checks that results in length and velocity gauges are equal.
 """
 
 #import numpy as np
-#import math
+import math
 #import cmath
-#import scipy.special
+import scipy.special
 #import sys
 import hame
 
@@ -74,9 +74,9 @@ def main():
 
 
 
-  n = 2
+  n = 1
   l = 0
-  nprime = 3
+  nprime = 2
   lprime = 0
   m = 0
   print('Example of two-photon transition')
@@ -108,6 +108,16 @@ def main():
   print('Matrix element from Gazeau        :',hame.two_photon_matrix_element_Gazeau(n,l,m,nprime,lprime))
   print('Matrix element from Marian        :',hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
 
+  """
+  energy_intermediaire = -0.25/(nprime**2)-0.25/(n**2)
+  omega = 0.25/(nprime**2)-0.25/(n**2)
+  tau = 1.0/math.sqrt(-2.0*energy_intermediaire)
+   print(hame.b_Marian(n, l, nprime, lprime, 1, 1, tau))
+  r1 = (1-tau)/(1+tau)
+  r2 = (2-tau)/(2+tau)
+  x = 2**(9.5)*3*tau**5*(scipy.special.hyp2f1(5,2-tau,3-tau,r1*r2)-(2-tau)*r1*scipy.special.hyp2f1(5,3-tau,4-tau,r1*r2)/(r2*(3-tau)))/((1+tau)**4*(2+tau)**5)
+  print(x/(3*omega**2))
+  """
 
   """
   n = 2

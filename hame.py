@@ -1549,32 +1549,40 @@ def Integral_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int, n0: int, l
   """
   Compute the Gazeau integral, eq. (3.10) of Ref. [1]_.
 
+  Note that, in order to get the correct result for the 1s->2s transition (which is known analytically),
+  an additional multiplicative factor is needed.
+
   Parameters
   ----------
   n : int
-    DESCRIPTION.
+    principal quantum number of the first state
   l : int
-    DESCRIPTION.
+    angular momentum of the first state
   m : int
-    DESCRIPTION.
+    magnetic quantum number of both states
   nprime : int
-    DESCRIPTION.
+    principal quantum number of the second state
   lprime : int
-    DESCRIPTION.
+    angular momentum of the second state
   n0 : int
-    DESCRIPTION.
+    principal quantum number of the first intermediate state
   l0 : int
-    DESCRIPTION.
+    angular momentum of the first intermediate state
   nprime0 : int
-    DESCRIPTION.
+    principal quantum number of the second intermediate state
+  lprime0 : int
+    angular momentum of the second intermediate state
   nu : float
-    DESCRIPTION.
+    effective principal quantum number of the relay state of the two-photon transition
 
   Returns
   -------
   float
     DESCRIPTION.
 
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
   """
   if l0!=lprime0 or n0<=l0 or nprime0<=l0:
     return 0.0
@@ -1598,6 +1606,8 @@ def Integral_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int, n0: int, l
       y = ((1-nu**2/n**2)*(1-nu**2/nprime**2)*n*nprime/(16*nu**2))**(q-ninf)
 #      print('1',y)
       y *= (-1)**sigma*rinf**(ninf+sigma)*scipy.special.hyp2f1(-q,-sigma,q+nsup-ninf-sigma+1,(rsup/rinf)**2)
+# The following factor is not included in Gazeau's formula. Empirically, it is needed to obtain the correct result for the 1s->2s transition
+      y *= rsup**(nsup-sigma)
 #      print('2',y)
 #      print(y,sigma,q,ninf-l0-1-q,ninf+l0-q,nsup+q-sigma-nu)
 #      print(scipy.special.factorial(sigma)*scipy.special.factorial(q)*scipy.special.factorial(ninf-l0-1-q)*scipy.special.factorial(ninf+l0-q))
@@ -1617,26 +1627,34 @@ def Integral_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int, n0: int, l
 
 def two_photon_matrix_element_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int) -> float:
   """
-  Compute the.
+  Compute the two-photon transition amplitude between states (n,l,m) and (nprime,lprime,m).
+
+  It is based on eq. (3.4) in ref. [1]_.
+
+  The T_Gazeau factors correspond to the C coefficients in the equation.
+  The Integral_Gazeau factor is the integral in the equation (multiplied by n0).
 
   Parameters
   ----------
   n : int
-    DESCRIPTION.
+    principal quantum number of the first state
   l : int
-    DESCRIPTION.
+    angular momentum of the first state
   m : int
-    DESCRIPTION.
+    magnetic quantum number of both states
   nprime : int
-    DESCRIPTION.
+    principal quantum number of the second state
   lprime : int
-    DESCRIPTION.
+    angular momentum of the second state
 
   Returns
   -------
   float
-    DESCRIPTION.
+    The two-photon transition amplitude between states (n,l,m) and (nprime,lprime,m)
 
+  References
+  ----------
+  .. [1] J.P. Gazeau, J. Math. Phys. 19, 1041 (1978)
   """
   energy_intermediaire = -0.25/(nprime**2)-0.25/(n**2)
   nu = 1.0/math.sqrt(-2.0*energy_intermediaire)
@@ -1652,7 +1670,8 @@ def two_photon_matrix_element_Gazeau(n: int, l: int, m: int, nprime: int, lprime
         for lprime0 in (lprime-1,lprime+1):
           if lprime0<0:
             continue
-          x += T_gazeau(nprime,lprime,m,nprime0,lprime0)*T_gazeau(n0,l0,m,n,l)*Integral_Gazeau(n, l, m, nprime, lprime, n0, l0, nprime0, lprime0, nu)
+#          x += T_gazeau(nprime,lprime,m,nprime0,lprime0)*T_gazeau(n0,l0,m,n,l)*Integral_Gazeau(n, l, m, nprime, lprime, n0, l0, nprime0, lprime0, nu)
+          x += T_gazeau(nprime0,lprime0,m,nprime,lprime)*T_gazeau(n,l,m,n0,l0)*Integral_Gazeau(n, l, m, nprime, lprime, n0, l0, nprime0, lprime0, nu)
 #          print('Inside Two',n0,l0,nprime0,lprime0,T_gazeau(nprime0,lprime0,m,nprime,lprime),T_gazeau(n,l,m,n0,l0),Integral_Gazeau(n, l, m, nprime, lprime, n0, l0, nprime0, lprime0, nu))
   x *= -nu/math.sqrt(n*nprime)
   return x/omega**2
@@ -1996,5 +2015,5 @@ def two_photon_matrix_element_Marian(n: int, l: int, m: int, nprime: int, lprime
         x += q*qprime*math.sqrt(abs(lambda_Marian(l,q)*lambda_Marian(lprime,qprime))/((2*l+1)*(2*lprime+1)))\
             *b_Marian(n, l, nprime, lprime, q, qprime, tau)\
             *angular_factor
-#        print('Inside 2-phi-Marian',q,qprime,x)
+#        print('Inside 2-phi-Marian',q,qprime,x,q*qprime*math.sqrt(abs(lambda_Marian(l,q)*lambda_Marian(lprime,qprime))/((2*l+1)*(2*lprime+1)))*angular_factor)
   return x/omega**2
