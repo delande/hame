@@ -1578,7 +1578,7 @@ def Integral_Gazeau(n: int, l: int, m: int, nprime: int, lprime: int, n0: int, l
   Returns
   -------
   float
-    DESCRIPTION.
+    The Gazeau integral, eq. (3.10) of Ref. [1]_.
 
   References
   ----------
@@ -1858,7 +1858,7 @@ def lambda_Marian(l: int, q: int) -> int:
   Returns
   -------
   int
-    DESCRIPTION.
+    The lambda_{l+q,l} coefficient, eq. (A5) of ref. [1]-.
 
   References
   ----------

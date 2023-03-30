@@ -55,98 +55,171 @@ def main():
   None.
   """
 
+  want_numerical_results = False
+  want_analytic_results = True
+  want_SI_results_for_beta = True
+  conversion_factor_from_atomic_to_SI_results = 4.687125e-6
+
   """
   n = 8
   l = 3
   nprime = 3
   lprime = 2
   m = 1
-  print('Example of one-photon transition')
-  print('<',n,l,m,'| z |',nprime,lprime,m,'> from Gordon formula    :',hame.gordon_formula(n, l, m, nprime, lprime))
+  print('One-photon transition')
+  if want_analytic_results:
+    print('<',n,l,m,'| z |',nprime,lprime,m,'> from Gordon formula    :',hame.gordon_formula(n, l, m, nprime, lprime))
 #  print(check_orthogonality(n, l, nprime, lprime, nsup))
-  print('<',n,l,m,'| z |',nprime,lprime,m,'> from numerics          :',hame.compute_dipole_matrix_element(n, l, m, nprime, lprime))
-  result_pz = hame.compute_dipole_matrix_element_velocity_gauge(n, l, m, nprime, lprime)
-  print('<',n,l,m,'| i*pz |',nprime,lprime,m,'> from numerics       :',result_pz)
-  if n!=nprime:
-    print('<',n,l,m,'| i*pz/omega |',nprime,lprime,m,'> from numerics :',result_pz/(0.5/n**2-0.5/nprime**2))
+  if want_numerical_results:
+    print('<',n,l,m,'| z |',nprime,lprime,m,'> from numerics          :',hame.compute_dipole_matrix_element(n, l, m, nprime, lprime))
+    result_pz = hame.compute_dipole_matrix_element_velocity_gauge(n, l, m, nprime, lprime)
+    print('<',n,l,m,'| i*pz |',nprime,lprime,m,'> from numerics       :',result_pz)
+    if n!=nprime:
+      print('<',n,l,m,'| i*pz/omega |',nprime,lprime,m,'> from numerics :',result_pz/(0.5/n**2-0.5/nprime**2))
   print()
   """
 
-
-
-  n = 1
-  l = 0
-  nprime = 2
-  lprime = 0
-  m = 0
-  print('Example of two-photon transition')
-  print('Transition n =',nprime,'l =',lprime,'m = ', m,'to n =',n,'l =',l,'m = ',m)
-  x1,x2 = hame.compute_full_two_photon_matrix_element(n, l, m, nprime, lprime, 'length')
-  if abs(l-lprime)==2:
-    print('Contribution of l =',(l+lprime)//2,'in length   gauge:',x1)
-  if l==lprime:
-    print('Contribution of l =',l+1,'in length   gauge:',x1)
-    if l!=0:
-      print('Contribution of l =',l-1,'in length   gauge:',x2)
-  print('Total matrix element  in length   gauge:', x1+x2)
-  x1,x2 = hame.compute_full_two_photon_matrix_element(n, l, m, nprime, lprime, 'velocity')
-  if abs(l-lprime)==2:
-    print('Contribution of l =',(l+lprime)//2,'in velocity gauge:',x1)
-  if l==lprime:
-    print('Contribution of l =',l+1,'in velocity gauge:',x1)
-    if l!=0:
-      print('Contribution of l =',l-1,'in velocity gauge:',x2)
-  print('Total matrix element  in velocity gauge:', x1+x2)
-  print()
-
-  if n==1 and l==0 and lprime==0:
-    print('Matrix element from Manakov et al.:',hame.two_photon_matrix_element_from_1s_to_ns_Manakov(nprime))
-  if n==2 and l==0 and lprime==0:
-    print('Matrix element from Manakov et al.:',hame.two_photon_matrix_element_from_2s_to_ns_Manakov(nprime))
-  if n==1 and l==0:
-    print('Matrix element from Marian 1s     :',hame.two_photon_matrix_element_from_1s_Marian(nprime,lprime))
-  print('Matrix element from Gazeau        :',hame.two_photon_matrix_element_Gazeau(n,l,m,nprime,lprime))
-  print('Matrix element from Marian        :',hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
-
-  """
-  energy_intermediaire = -0.25/(nprime**2)-0.25/(n**2)
-  omega = 0.25/(nprime**2)-0.25/(n**2)
-  tau = 1.0/math.sqrt(-2.0*energy_intermediaire)
-   print(hame.b_Marian(n, l, nprime, lprime, 1, 1, tau))
-  r1 = (1-tau)/(1+tau)
-  r2 = (2-tau)/(2+tau)
-  x = 2**(9.5)*3*tau**5*(scipy.special.hyp2f1(5,2-tau,3-tau,r1*r2)-(2-tau)*r1*scipy.special.hyp2f1(5,3-tau,4-tau,r1*r2)/(r2*(3-tau)))/((1+tau)**4*(2+tau)**5)
-  print(x/(3*omega**2))
-  """
 
   """
   n = 2
-  l = 1
+  l = 0
   nprime = 8
-  lprime = 1
-  m = 1
+  lprime = 2
+  m = 0
+  print('Two-photon transition')
+  print('Transition n =',n,'l =',l,'m = ', m,'to n =',nprime,'l =',lprime,'m = ',m)
+  if want_numerical_results:
+    x1,x2 = hame.compute_full_two_photon_matrix_element(n, l, m, nprime, lprime, 'length')
+    if abs(l-lprime)==2:
+      print('Contribution of l =',(l+lprime)//2,'in length   gauge:',x1)
+    if l==lprime:
+      print('Contribution of l =',l+1,'in length   gauge:',x1)
+      if l!=0:
+        print('Contribution of l =',l-1,'in length   gauge:',x2)
+    print('Total matrix element  in length   gauge:', x1+x2)
+    x1,x2 = hame.compute_full_two_photon_matrix_element(n, l, m, nprime, lprime, 'velocity')
+    if abs(l-lprime)==2:
+      print('Contribution of l =',(l+lprime)//2,'in velocity gauge:',x1)
+    if l==lprime:
+      print('Contribution of l =',l+1,'in velocity gauge:',x1)
+      if l!=0:
+        print('Contribution of l =',l-1,'in velocity gauge:',x2)
+    print('Total matrix element  in velocity gauge:', x1+x2)
+
+  if want_analytic_results:
+    if n==1 and l==0 and lprime==0:
+      print('Matrix element from Manakov et al.:',hame.two_photon_matrix_element_from_1s_to_ns_Manakov(nprime))
+    if n==2 and l==0 and lprime==0:
+      print('Matrix element from Manakov et al.:',hame.two_photon_matrix_element_from_2s_to_ns_Manakov(nprime))
+    if n==1 and l==0:
+      print('Matrix element from Marian 1s     :',hame.two_photon_matrix_element_from_1s_Marian(nprime,lprime))
+    print('Matrix element from Gazeau        :',hame.two_photon_matrix_element_Gazeau(n,l,m,nprime,lprime),'    WARNING, can be wrong!')
+    print('Matrix element from Marian        :',hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
+  print()
+  """
+
+
+
+  n = 2
+  l = 0
+  nprime = 8
+  lprime = 2
+  m = 0
   if abs(m)>min(l,lprime) or n<=l or nprime<=lprime:
     print('At least one of the states n =',n,'l =',l,'m =',m,' or n =',nprime,'l =',lprime,'m =',m,' does not exist!')
     return
   omega = 0.25/n**2 - 0.25/nprime**2
-  print('Example of light-shift on a two-photon transition')
-  x = hame.compute_full_light_shift(n, l, m, omega, gauge='length')
-  print('Light-shift     of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (length gauge)')
-  print('Ionization rate of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (length gauge)')
-  x = hame.compute_full_light_shift(n, l, m, omega, gauge='velocity')
-  print('Light-shift     of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (velocity gauge)')
-  print('Ionization rate of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
+  print('Light-shift on a two-photon transition from n =',n,'l =',l,'m =', m,'to n =',nprime,'l =',lprime,'m =',m)
   print()
-  x = hame.compute_full_light_shift(nprime, lprime, m, omega, gauge='length')
-  print('Light-shift     of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (length gauge)')
-  print('Ionization rate of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (length gauge)')
-  x = hame.compute_full_light_shift(nprime, lprime, m, omega, gauge='velocity')
-  print('Light-shift     of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (velocity gauge)')
-  print('Ionization rate of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
-  print()
-  """
+  if want_numerical_results:
+    x = hame.compute_full_light_shift(n, l, m, omega, gauge='length')
+    print('Light-shift     of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (length gauge)')
+    print('Ionization rate of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (length gauge)')
+    x = hame.compute_full_light_shift(n, l, m, omega, gauge='velocity')
+    print('Light-shift     of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (velocity gauge)')
+    print('Ionization rate of the n =',n,'l =',l,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
+    print()
+    x = hame.compute_full_light_shift(nprime, lprime, m, omega, gauge='length')
+    print('Light-shift     of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (length gauge)')
+    print('Ionization rate of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (length gauge)')
+    x = hame.compute_full_light_shift(nprime, lprime, m, omega, gauge='velocity')
+    print('Light-shift     of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.real,' (velocity gauge)')
+    print('Ionization rate of the n =',nprime,'l =',lprime,'m =',m,'state at |omega| =',abs(omega),':',x.imag*2.0,' (velocity gauge)')
+    print()
+  if want_analytic_results:
+    zg0 = (hame.I_gazeau(n,l,0,omega)+hame.I_gazeau(n,l,0,-omega)+1.0)/omega**2
+    print('Light-shift     of the n =',n,'l =',l,'m =',m,'state computed using the Gazeau formula :',zg0.real,' (analytic result)')
+    print('Ionization rate of the n =',n,'l =',l,'m =',m,'state computed using the Gazeau formula :',2.0*zg0.imag,' (analytic result)')
+# This is for an initial S state, the beta coefficient is trivial
+    if l==0:
+      beta0 = zg0
+      if want_SI_results_for_beta:
+        beta0 *= conversion_factor_from_atomic_to_SI_results
+      print('beta^(0)_ac =',beta0.real,'  beta^(0)_ion =',2*beta0.imag)
+      print('The light-shift and ionization rate of the J=1/2 m_J=+/-1/2 states are identical to the one of the m=0 state printed above')
+      print()
+# This is for a D state
+    if l==2 and m==0:
+# One needs an additional calculation to extract both beta0 and beta2
+# This is done using the m=2 state
+      zg2 = (hame.I_gazeau(n,l,2,omega)+hame.I_gazeau(n,l,2,-omega)+1.0)/omega**2
+      beta0 = math.sqrt(5)*0.5*(zg0+zg2)
+      beta2 = math.sqrt(70)*0.25*(zg2-zg0)
+      light_shift_fine_structure_three_half = beta0/math.sqrt(5)-beta2*math.sqrt(70)/50
+      light_shift_fine_structure_five_half = beta0/math.sqrt(5)-beta2*8/(5*math.sqrt(70))
+      if want_SI_results_for_beta:
+        beta0 *= conversion_factor_from_atomic_to_SI_results
+        beta2 *= conversion_factor_from_atomic_to_SI_results
+      print('beta^(0)_ac =',beta0.real,'  beta^(0)_ion =',2*beta0.imag)
+      print('beta^(2)_ac =',beta2.real,'  beta^(2)_ion =',2*beta2.imag)
+      print('Light-shift     of the n =',n,'l = 2 j = 3/2 mj = +/-1/2 states',light_shift_fine_structure_three_half.real)
+      print('Ionization rate of the n =',n,'l = 2 j = 3/2 mj = +/-1/2 states',2*light_shift_fine_structure_three_half.imag)
+      print('Light-shift     of the n =',n,'l = 2 j = 5/2 mj = +/-1/2 states',light_shift_fine_structure_five_half.real)
+      print('Ionization rate of the n =',n,'l = 2 j = 5/2 mj = +/-1/2 states',2*light_shift_fine_structure_five_half.imag)
+      print()
+    ze0 = (hame.I_gazeau(nprime,lprime,0,omega)+hame.I_gazeau(nprime,lprime,0,-omega)+1.0)/omega**2
+    print('Light-shift     of the n =',nprime,'l =',lprime,'m =',m,'state computed using the Gazeau formula :',ze0.real,' (analytic result)')
+    print('Ionization rate of the n =',nprime,'l =',lprime,'m =',m,'state computed using the Gazeau formula :',2.0*ze0.imag,' (analytic result)')
+# This is for a final S state, the beta coefficient is trivial
+    if lprime==0:
+      beta0 = ze0
+      if want_SI_results_for_beta:
+        beta0 *= conversion_factor_from_atomic_to_SI_results
+      print('beta^(0)_ac =',beta0.real,'  beta^(0)_ion =',2*beta0.imag)
+      print('The light-shift and ionization rate of the J=1/2 m_J=+/-1/2 states are identical to the one of the m=0 state printed above')
+      print()
+# This is for a D state
+    if lprime==2 and m==0:
+# One needs an additional calculation to extract both beta0 and beta2
+# This is done using the m=2 state
+      ze2 = (hame.I_gazeau(nprime,lprime,2,omega)+hame.I_gazeau(nprime,lprime,2,-omega)+1.0)/omega**2
+      beta0 = math.sqrt(5)*0.5*(ze0+ze2)
+      beta2 = math.sqrt(70)*0.25*(ze2-ze0)
+      light_shift_fine_structure_three_half = beta0/math.sqrt(5)-beta2*math.sqrt(70)/50
+      light_shift_fine_structure_five_half = beta0/math.sqrt(5)-beta2*8/(5*math.sqrt(70))
+      if want_SI_results_for_beta:
+        beta0 *= conversion_factor_from_atomic_to_SI_results
+        beta2 *= conversion_factor_from_atomic_to_SI_results
+      print('beta^(0)_ac =',beta0.real,'  beta^(0)_ion =',2*beta0.imag)
+      print('beta^(2)_ac =',beta2.real,'  beta^(2)_ion =',2*beta2.imag)
+      print('Light-shift     of the n =',nprime,'l = 2 j = 3/2 mj = +/-1/2 states',light_shift_fine_structure_three_half.real)
+      print('Ionization rate of the n =',nprime,'l = 2 j = 3/2 mj = +/-1/2 states',2*light_shift_fine_structure_three_half.imag)
+      print('Light-shift     of the n =',nprime,'l = 2 j = 5/2 mj = +/-1/2 states',light_shift_fine_structure_five_half.real)
+      print('Ionization rate of the n =',nprime,'l = 2 j = 5/2 mj = +/-1/2 states',2*light_shift_fine_structure_five_half.imag)
+      print()
+
+if __name__ == "__main__":
+  main()
+
 
   """
+  Old stuff
+  """
+
+
+  """
+# This is useful if a light-shift is needed, for an arbitrary frequency
+# not necessarily on a two-photon transition
   omega = 0.05859375
   n = 8
   l = 1
@@ -174,13 +247,7 @@ def main():
   return
   """
 
-if __name__ == "__main__":
-  main()
-
-
   """
-  Old stuff
-
   n = 20
   l = 2
   nprime = 8
@@ -265,4 +332,15 @@ if __name__ == "__main__":
   my_result = 2.0*np.pi*my_result**2
   print('my result = ', my_result)
   print()
+  """
+
+  """
+  energy_intermediaire = -0.25/(nprime**2)-0.25/(n**2)
+  omega = 0.25/(nprime**2)-0.25/(n**2)
+  tau = 1.0/math.sqrt(-2.0*energy_intermediaire)
+  print(hame.b_Marian(n, l, nprime, lprime, 1, 1, tau))
+  r1 = (1-tau)/(1+tau)
+  r2 = (2-tau)/(2+tau)
+  x = 2**(9.5)*3*tau**5*(scipy.special.hyp2f1(5,2-tau,3-tau,r1*r2)-(2-tau)*r1*scipy.special.hyp2f1(5,3-tau,4-tau,r1*r2)/(r2*(3-tau)))/((1+tau)**4*(2+tau)**5)
+  print(x/(3*omega**2))
   """
