@@ -80,11 +80,11 @@ def main():
   """
 
 
-  """
+
   n = 2
   l = 0
   nprime = 8
-  lprime = 2
+  lprime = 0
   m = 0
   print('Two-photon transition')
   print('Transition n =',n,'l =',l,'m = ', m,'to n =',nprime,'l =',lprime,'m = ',m)
@@ -114,9 +114,20 @@ def main():
     if n==1 and l==0:
       print('Matrix element from Marian 1s     :',hame.two_photon_matrix_element_from_1s_Marian(nprime,lprime))
     print('Matrix element from Gazeau        :',hame.two_photon_matrix_element_Gazeau(n,l,m,nprime,lprime),'    WARNING, can be wrong!')
-    print('Matrix element from Marian        :',hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime))
+    x = hame.two_photon_matrix_element_Marian(n,l,m,nprime,lprime)
+    print('Matrix element from Marian        :',x)
+    if max(l,lprime)==2 and min(l,lprime)==0 and m==0:
+      beta2 = x*math.sqrt(5)
+      if want_SI_results_for_beta:
+        beta2 *= conversion_factor_from_atomic_to_SI_results
+      print('beta^(2) =',beta2)
+    if l==0 and lprime==0 and m==0:
+      beta0 = x
+      if want_SI_results_for_beta:
+        beta0 *= conversion_factor_from_atomic_to_SI_results
+      print('beta^(0) =',beta0)
   print()
-  """
+
 
 
 
